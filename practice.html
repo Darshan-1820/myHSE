@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practice — Code Foundations</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0f1117; --bg-card: #1a1d27; --bg-code: #12141c; --border: #2a2d3a;
+  --text: #e0e0e6; --text-dim: #8b8fa3; --accent: #6c8cff;
+  --green: #4ade80; --orange: #fb923c; --red: #f87171; --yellow: #fbbf24;
+  --purple: #a78bfa; --cyan: #22d3ee;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.8; font-size: 16px; }
+
+/* NAV BAR */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: var(--bg-card); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 32px; height: 60px;
+}
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.topbar-left a { color: var(--accent); text-decoration: none; font-size: 14px; }
+.topbar-title { font-weight: 700; font-size: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.q-counter { font-size: 14px; color: var(--text-dim); font-weight: 500; }
+
+.nav-btn {
+  padding: 8px 20px; border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); border-radius: 8px; cursor: pointer; font-family: inherit;
+  font-size: 14px; font-weight: 600; transition: all 0.2s;
+}
+.nav-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.nav-btn:disabled:hover { background: var(--bg); color: var(--text); }
+
+/* MAIN */
+.main { max-width: 860px; margin: 0 auto; padding: 84px 32px 120px; }
+
+/* QUESTION CARD */
+.question { display: none; }
+.question.active { display: block; }
+
+/* TAGS */
+.tag-row { display: flex; gap: 8px; margin: 16px 0 24px; flex-wrap: wrap; }
+.tag { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.tag-java { background: rgba(251,146,60,0.15); color: var(--orange); }
+.tag-sql { background: rgba(74,222,128,0.15); color: var(--green); }
+.tag-api { background: rgba(108,140,255,0.15); color: var(--accent); }
+.tag-difficulty { background: rgba(167,139,250,0.15); color: var(--purple); }
+
+h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+h3 { font-size: 20px; font-weight: 700; margin: 40px 0 16px; padding-top: 12px; }
+h4 { font-size: 16px; font-weight: 600; margin: 28px 0 12px; color: var(--orange); }
+p { margin-bottom: 16px; }
+
+/* PHASE SECTIONS */
+.phase {
+  margin: 24px 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+.phase-header {
+  padding: 16px 24px; background: var(--bg-card); cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  font-weight: 600; font-size: 16px; user-select: none;
+}
+.phase-header:hover { background: rgba(108,140,255,0.06); }
+.phase-header .arrow { transition: transform 0.3s; font-size: 12px; }
+.phase-header.open .arrow { transform: rotate(90deg); }
+.phase-body { display: none; padding: 24px; border-top: 1px solid var(--border); }
+.phase-body.open { display: block; }
+.phase-num { color: var(--accent); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+/* BOXES */
+.analogy { background: rgba(251,146,60,0.08); border-left: 3px solid var(--orange); padding: 20px 24px; border-radius: 0 8px 8px 0; margin: 24px 0; line-height: 1.8; }
+.analogy::before { content: "How to think about it"; display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--orange); margin-bottom: 6px; }
+.key-point { background: rgba(108,140,255,0.08); border-left: 3px solid var(--accent); padding: 20px 24px; border-radius: 0 8px 8px 0; margin: 24px 0; line-height: 1.8; }
+.key-point::before { content: "Pattern to Remember"; display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin-bottom: 6px; }
+.warning { background: rgba(248,113,113,0.08); border-left: 3px solid var(--red); padding: 20px 24px; border-radius: 0 8px 8px 0; margin: 24px 0; line-height: 1.8; }
+.warning::before { content: "Watch Out"; display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--red); margin-bottom: 6px; }
+
+/* CODE */
+pre { background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px; padding: 24px; overflow-x: auto; margin: 20px 0 24px; font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 1.7; }
+code { font-family: 'JetBrains Mono', monospace; }
+p code, li code { background: var(--bg-code); padding: 2px 7px; border-radius: 4px; font-size: 13px; border: 1px solid var(--border); }
+.kw { color: #c678dd; } .str { color: #98c379; } .num { color: #d19a66; }
+.cm { color: #5c6370; font-style: italic; } .fn { color: #61afef; } .type { color: #e5c07b; }
+
+/* STEP */
+.step { display: flex; gap: 20px; margin: 20px 0; padding: 24px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); }
+.step-num { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+.step-content { flex: 1; line-height: 1.8; }
+.step-content p:last-child { margin-bottom: 0; }
+
+/* DATA FLOW */
+.data-flow { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 24px 0; }
+.data-flow-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--cyan); margin-bottom: 16px; }
+
+/* TABLE */
+table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; }
+th { background: var(--bg-card); padding: 10px 14px; text-align: left; font-weight: 600; border: 1px solid var(--border); font-size: 13px; }
+td { padding: 10px 14px; border: 1px solid var(--border); }
+tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+
+ul, ol { padding-left: 24px; margin-bottom: 16px; }
+li { margin-bottom: 8px; line-height: 1.8; }
+
+/* QUESTION PROGRESS */
+.q-dots { display: flex; gap: 6px; align-items: center; }
+.q-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); cursor: pointer; transition: all 0.2s; }
+.q-dot.active { background: var(--accent); transform: scale(1.3); }
+.q-dot:hover { background: var(--text-dim); }
+
+/* QUESTION STATEMENT */
+.q-statement {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 28px; margin: 24px 0;
+}
+.q-statement::before {
+  content: "Question"; display: block; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--cyan); margin-bottom: 12px;
+}
+
+@media (max-width: 700px) {
+  .main { padding: 76px 16px 80px; }
+  .topbar { padding: 12px 16px; }
+  .q-dots { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="index.html">&larr; Back to Concepts</a>
+    <span class="topbar-title">Practice Questions</span>
+  </div>
+  <div class="topbar-right">
+    <div class="q-dots" id="dots"></div>
+    <span class="q-counter" id="counter">1 / 7</span>
+    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">&#9664; Prev</button>
+    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Next &#9654;</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ======== QUESTION 1 ======== -->
+<div class="question active" data-q="0">
+  <div class="tag-row">
+    <span class="tag tag-java">Java — Strings</span>
+    <span class="tag tag-difficulty">Medium</span>
+  </div>
+  <h2>Q1: Maximum Substring</h2>
+
+  <div class="q-statement">
+    You are given a string <code>s</code>. A substring is any contiguous sequence of characters from the string.
+    <br><br>
+    Your task is to:
+    <ul style="margin-top:8px;">
+      <li>Consider all possible substrings of the string.</li>
+      <li>Determine which substring would appear last if all substrings were sorted alphabetically.</li>
+      <li>Return that substring.</li>
+    </ul>
+    <strong>Example 1:</strong> <code>s = "baca"</code>
+    <br>All unique substrings: ["b","ba","bac","baca","a","ac","aca","c","ca"]
+    <br>Arranged alphabetically: ["a","ac","aca","b","ba","bac","baca","c","ca"]
+    <br>The alphabetically maximum substring is <code>"ca"</code>.
+    <br><br>
+    <strong>Example 2:</strong> <code>s = "aaa"</code> → Answer: <code>"aaa"</code>
+    <br><br>
+    <strong>Constraints:</strong> 1 ≤ length of s ≤ 100. All characters are lowercase a-z.
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> A "substring" is any piece you can cut from the string by taking consecutive characters. From "baca" you can cut: "b", "ba", "bac", "baca", "a", "ac", "aca", "c", "ca".</p>
+      <p><strong>"Alphabetically maximum"</strong> means: if you put all these pieces in dictionary order, which one comes LAST? Just like "zebra" comes after "apple" in a dictionary, "ca" comes after "baca" because 'c' > 'b'.</p>
+      <p><strong>What you need to do:</strong> Find the substring that comes LAST in dictionary order. You don't need to actually sort all substrings — there's a smarter way.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Analyze the question type</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>Type:</strong> String manipulation + alphabetical comparison</p>
+      <p><strong>Concepts tested:</strong> <code>substring()</code>, <code>compareTo()</code>, loops</p>
+      <p><strong>Key insight:</strong> You do NOT need to generate all substrings. The alphabetically largest substring ALWAYS starts with the alphabetically largest character in the string. Why? Because any substring starting with 'z' beats any substring starting with 'a' through 'y'.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Step-by-step approach (before coding)</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content"><p>Loop through each index of the string (i = 0 to length-1)</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content"><p>At each index, take <code>s.substring(i)</code> — everything from that position to the end</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content"><p>Compare it with the current maximum using <code>.compareTo()</code>. If it's bigger, update the max.</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content"><p>Return the max after the loop ends.</p></div>
+      </div>
+
+      <div class="analogy">
+        Think of it like finding the word that comes LAST in a dictionary. You go through each possible starting position, take everything from there to the end, and keep track of the "latest" one.
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution with breakdown</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">public static</span> <span class="type">String</span> <span class="fn">maxSubstring</span>(<span class="type">String</span> s) {
+    <span class="type">String</span> max = <span class="str">""</span>;                        <span class="cm">// start with empty string</span>
+
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i < s.<span class="fn">length</span>(); i++) {
+        <span class="type">String</span> sub = s.<span class="fn">substring</span>(i);          <span class="cm">// take from index i to end</span>
+        <span class="kw">if</span> (sub.<span class="fn">compareTo</span>(max) > <span class="num">0</span>) {        <span class="cm">// if this comes AFTER max in dictionary</span>
+            max = sub;                          <span class="cm">// this is the new maximum</span>
+        }
+    }
+
+    <span class="kw">return</span> max;
+}</pre>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Trace with s = "baca"</div>
+        <table>
+          <tr><th>i</th><th>sub = s.substring(i)</th><th>sub.compareTo(max)</th><th>max becomes</th></tr>
+          <tr><td>0</td><td>"baca"</td><td>"baca" > "" → positive</td><td><strong>"baca"</strong></td></tr>
+          <tr><td>1</td><td>"aca"</td><td>"aca" < "baca" → negative</td><td>"baca" (no change)</td></tr>
+          <tr><td>2</td><td>"ca"</td><td>"ca" > "baca" → positive (c > b)</td><td><strong>"ca"</strong></td></tr>
+          <tr><td>3</td><td>"a"</td><td>"a" < "ca" → negative</td><td>"ca" (no change)</td></tr>
+        </table>
+        <p><strong>Final answer: "ca"</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Pattern for similar questions</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="key-point">
+        <strong>Any time you see "find the maximum/minimum substring alphabetically":</strong>
+        <br>1. Loop through all starting positions
+        <br>2. Take <code>substring(i)</code> to the end
+        <br>3. Compare with <code>.compareTo()</code>
+        <br>4. Track the best one
+        <br><br>
+        <strong>Time complexity:</strong> O(n²) which is fine for length ≤ 100.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 2 ======== -->
+<div class="question" data-q="1">
+  <div class="tag-row">
+    <span class="tag tag-java">Java — Strings + Characters</span>
+    <span class="tag tag-difficulty">Medium</span>
+  </div>
+  <h2>Q2: Word Count Tool</h2>
+
+  <div class="q-statement">
+    You are given a string <code>s</code> that may contain words separated by spaces.
+    <br><br>
+    A word is considered valid if it meets <strong>ALL</strong> of the following:
+    <ul style="margin-top:8px;">
+      <li>Has at least 3 characters</li>
+      <li>Contains only alphanumeric characters (a-z, A-Z, 0-9)</li>
+      <li>Contains at least one vowel (a, e, i, o, u, case-insensitive)</li>
+      <li>Contains at least one consonant (any letter that is not a vowel)</li>
+    </ul>
+    Your task is to: identify all words, count how many are valid, return that count.
+    <br><br>
+    <strong>Example 1:</strong> <code>s = "This is an example string 234"</code> → Output: <code>3</code>
+    <table style="margin-top:8px;">
+      <tr><th>Word</th><th>Valid?</th><th>Reason</th></tr>
+      <tr><td>This</td><td style="color:var(--green)">Yes</td><td>3+ chars, alphanumeric, has vowel (i), has consonant (T,h,s)</td></tr>
+      <tr><td>is</td><td style="color:var(--red)">No</td><td>Less than 3 characters</td></tr>
+      <tr><td>an</td><td style="color:var(--red)">No</td><td>Less than 3 characters</td></tr>
+      <tr><td>example</td><td style="color:var(--green)">Yes</td><td>All rules pass</td></tr>
+      <tr><td>string</td><td style="color:var(--green)">Yes</td><td>All rules pass</td></tr>
+      <tr><td>234</td><td style="color:var(--red)">No</td><td>No vowel or consonant (only digits)</td></tr>
+    </table>
+    <br>
+    <strong>Example 2:</strong> <code>s = "This is Form16 submis$ion date"</code> → Output: <code>3</code> (This, Form16, date)
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> Break the sentence into words. For each word, check 4 rules. If ALL 4 pass, it's valid. Count the valid ones.</p>
+      <p><strong>"Alphanumeric"</strong> means only letters (a-z, A-Z) and digits (0-9). No special characters like $, !, @, spaces, etc. So "submis$ion" fails because of the $.</p>
+      <p><strong>"Vowel"</strong> = a, e, i, o, u (uppercase counts too). <strong>"Consonant"</strong> = any letter that is NOT a vowel (b, c, d, f, g...). Digits are neither vowels nor consonants — so "234" has no vowel AND no consonant.</p>
+      <p><strong>What you need to figure out:</strong> How to split a string into words → <code>split(" ")</code>. How to check each character → loop through <code>toCharArray()</code> and use <code>Character.isLetterOrDigit()</code>.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Analyze the question type</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>Type:</strong> String splitting + character-by-character validation</p>
+      <p><strong>Concepts tested:</strong> <code>split()</code>, <code>toCharArray()</code>, <code>Character.isLetterOrDigit()</code>, <code>Character.isLetter()</code>, vowel checking</p>
+      <p><strong>Key insight:</strong> You need 4 checks per word. Use boolean flags. Loop through characters ONCE and set all flags in that single pass.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Step-by-step approach</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step"><div class="step-num">1</div><div class="step-content"><p>Split the string by space: <code>s.split(" ")</code> → array of words</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><p>For each word, first check: is length ≥ 3? If no, skip it immediately.</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-content"><p>Loop through each character of the word. Set 3 flags: <code>allAlphaNum</code>, <code>hasVowel</code>, <code>hasConsonant</code></p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-content"><p>After the character loop, if ALL flags pass → count++</p></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution with breakdown</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">public static int</span> <span class="fn">countValidWords</span>(<span class="type">String</span> s) {
+    <span class="type">String</span>[] words = s.<span class="fn">split</span>(<span class="str">" "</span>);
+    <span class="type">int</span> count = <span class="num">0</span>;
+    <span class="type">String</span> vowels = <span class="str">"aeiouAEIOU"</span>;
+
+    <span class="kw">for</span> (<span class="type">String</span> word : words) {
+        <span class="kw">if</span> (word.<span class="fn">length</span>() < <span class="num">3</span>) <span class="kw">continue</span>;     <span class="cm">// skip short words immediately</span>
+
+        <span class="type">boolean</span> valid = <span class="kw">true</span>;                <span class="cm">// assume all chars are alphanumeric</span>
+        <span class="type">boolean</span> hasVowel = <span class="kw">false</span>;
+        <span class="type">boolean</span> hasConsonant = <span class="kw">false</span>;
+
+        <span class="kw">for</span> (<span class="type">char</span> c : word.<span class="fn">toCharArray</span>()) {
+            <span class="kw">if</span> (!<span class="type">Character</span>.<span class="fn">isLetterOrDigit</span>(c)) {
+                valid = <span class="kw">false</span>;               <span class="cm">// found a bad character like $ or !</span>
+                <span class="kw">break</span>;                       <span class="cm">// no need to check further</span>
+            }
+            <span class="kw">if</span> (<span class="type">Character</span>.<span class="fn">isLetter</span>(c)) {       <span class="cm">// only check vowel/consonant for LETTERS</span>
+                <span class="kw">if</span> (vowels.<span class="fn">indexOf</span>(c) != -<span class="num">1</span>) hasVowel = <span class="kw">true</span>;
+                <span class="kw">else</span> hasConsonant = <span class="kw">true</span>;
+            }
+        }
+
+        <span class="kw">if</span> (valid && hasVowel && hasConsonant) count++;
+    }
+    <span class="kw">return</span> count;
+}</pre>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Trace with "This is Form16 submis$ion date"</div>
+        <table>
+          <tr><th>Word</th><th>Length ≥ 3?</th><th>All alphanumeric?</th><th>Has vowel?</th><th>Has consonant?</th><th>Valid?</th></tr>
+          <tr><td>"This"</td><td>Yes (4)</td><td>Yes</td><td>Yes (i)</td><td>Yes (T,h,s)</td><td style="color:var(--green);">YES</td></tr>
+          <tr><td>"is"</td><td>No (2)</td><td>—</td><td>—</td><td>—</td><td style="color:var(--red);">SKIP</td></tr>
+          <tr><td>"Form16"</td><td>Yes (6)</td><td>Yes (letters+digits)</td><td>Yes (o)</td><td>Yes (F,r,m)</td><td style="color:var(--green);">YES</td></tr>
+          <tr><td>"submis$ion"</td><td>Yes (10)</td><td>No ($ found)</td><td>—</td><td>—</td><td style="color:var(--red);">NO</td></tr>
+          <tr><td>"date"</td><td>Yes (4)</td><td>Yes</td><td>Yes (a,e)</td><td>Yes (d,t)</td><td style="color:var(--green);">YES</td></tr>
+        </table>
+        <p><strong>Answer: 3</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Pattern for similar questions</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="key-point">
+        <strong>"Validate words/items based on multiple rules" pattern:</strong>
+        <br>1. Split the input into parts
+        <br>2. For each part, use boolean flags for each rule
+        <br>3. Loop through characters ONCE, update all flags in that loop
+        <br>4. Use <code>continue</code> to skip early (saves time)
+        <br>5. After the loop, check all flags together with <code>&&</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 3 ======== -->
+<div class="question" data-q="2">
+  <div class="tag-row">
+    <span class="tag tag-sql">SQL — Aggregates</span>
+    <span class="tag tag-difficulty">Easy-Medium</span>
+  </div>
+  <h2>Q3: Aggregate Marks</h2>
+
+  <div class="q-statement">
+    Write a query to get students whose SUM of marks ≥ 500. Show <code>STUDENT_ID</code> and <code>SUM_OF_MARKS</code>. Sort by STUDENT_ID descending.
+    <br><br>
+    <strong>Table:</strong> <code>marks(STUDENT_ID INT, MARKS INT)</code>
+    <br><strong>Note:</strong> A student can have MULTIPLE rows (multiple marks entries).
+    <br><br>
+    <strong>Sample Data:</strong>
+    <table style="margin-top:8px; width: auto;">
+      <tr><th>STUDENT_ID</th><th>MARKS</th></tr>
+      <tr><td>1</td><td>450</td></tr>
+      <tr><td>2</td><td>200</td></tr>
+      <tr><td>3</td><td>260</td></tr>
+      <tr><td>2</td><td>300</td></tr>
+      <tr><td>3</td><td>250</td></tr>
+    </table>
+    <strong>Expected Output:</strong> 3 | 510 then 2 | 500
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> Look at the table — student 2 appears TWICE (200 and 300). Student 3 appears TWICE (260 and 250). The question wants you to ADD UP all marks for each student, then only show students whose total is 500 or more.</p>
+      <p><strong>"GROUP BY"</strong> is the key concept here. It means "combine all rows with the same STUDENT_ID into one group." Then SUM adds up the marks WITHIN each group.</p>
+      <p><strong>"Descending order"</strong> means biggest first. Student 3 (510) comes before Student 2 (500).</p>
+      <p><strong>Why you can't use WHERE:</strong> WHERE filters INDIVIDUAL rows. But you need to filter GROUPS (the sum of multiple rows). That's what HAVING does — it filters after grouping.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Analyze the question type</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>Type:</strong> GROUP BY + aggregate function + HAVING filter</p>
+      <p><strong>Concepts tested:</strong> GROUP BY, SUM(), HAVING, ORDER BY DESC, AS alias</p>
+      <p><strong>Key insight:</strong> Same student appears multiple times → you need GROUP BY to combine their rows. Use HAVING (not WHERE) because you're filtering on the SUM which only exists AFTER grouping.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Think in plain English first</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step"><div class="step-num">1</div><div class="step-content"><p>"Make piles by STUDENT_ID" → <code>GROUP BY STUDENT_ID</code></p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><p>"Add up marks in each pile" → <code>SUM(MARKS)</code></p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-content"><p>"Only keep piles where total ≥ 500" → <code>HAVING SUM(MARKS) >= 500</code></p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-content"><p>"Sort by student ID, biggest first" → <code>ORDER BY STUDENT_ID DESC</code></p></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">SELECT</span> STUDENT_ID, <span class="fn">SUM</span>(MARKS) <span class="kw">AS</span> SUM_OF_MARKS
+<span class="kw">FROM</span> marks
+<span class="kw">GROUP BY</span> STUDENT_ID
+<span class="kw">HAVING</span> <span class="fn">SUM</span>(MARKS) >= <span class="num">500</span>
+<span class="kw">ORDER BY</span> STUDENT_ID <span class="kw">DESC</span>;</pre>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Row-by-row trace</div>
+        <table>
+          <tr><th>STUDENT_ID</th><th>All MARKS rows</th><th>SUM</th><th>≥ 500?</th></tr>
+          <tr><td>1</td><td>[450]</td><td>450</td><td style="color:var(--red);">No → filtered out</td></tr>
+          <tr><td>2</td><td>[200, 300]</td><td>500</td><td style="color:var(--green);">Yes</td></tr>
+          <tr><td>3</td><td>[260, 250]</td><td>510</td><td style="color:var(--green);">Yes</td></tr>
+        </table>
+        <p>ORDER BY DESC → <strong>3 (510), then 2 (500)</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Pattern</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="key-point">
+        <strong>Whenever you see "for each X, find the total/average/count of Y where total meets condition":</strong>
+        <br>1. <code>SELECT X, AGGREGATE(Y)</code>
+        <br>2. <code>FROM table</code>
+        <br>3. <code>GROUP BY X</code>
+        <br>4. <code>HAVING AGGREGATE(Y) condition</code>
+        <br>5. <code>ORDER BY ...</code>
+        <br><br>
+        <strong>WHERE</strong> = filter rows BEFORE grouping. <strong>HAVING</strong> = filter groups AFTER grouping.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 4 ======== -->
+<div class="question" data-q="3">
+  <div class="tag-row">
+    <span class="tag tag-sql">SQL — JOINs + Multi-Aggregate</span>
+    <span class="tag tag-difficulty">Hard</span>
+  </div>
+  <h2>Q4: Rental Property Cash Flow Analysis</h2>
+
+  <div class="q-statement">
+    Two tables: <code>properties(id, name)</code> and <code>cash_flows(property_id, amount)</code>. Write a query showing:
+    <ul style="margin-top:8px;">
+      <li><code>name</code> — property name</li>
+      <li><code>cash_flows</code> — total number of cash flow records</li>
+      <li><code>min_cash_flow</code> — minimum amount</li>
+      <li><code>max_cash_flow</code> — maximum amount</li>
+      <li><code>avg_cash_flow</code> — average amount, rounded to 2 decimals</li>
+    </ul>
+    Only include properties with average > 10,000. Sort by name ASC. Retain trailing zeros (e.g., 10279.20).
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> You have a list of rental properties and their cash flow records. Each property can have MANY cash flow amounts. You need to calculate statistics (count, min, max, average) for each property.</p>
+      <p><strong>Why it needs a JOIN:</strong> Property names are in one table, cash flow amounts are in another. You need to CONNECT them using the property_id foreign key. That's what JOIN does.</p>
+      <p><strong>"Only include properties with average > 10,000":</strong> This is HAVING — filter AFTER grouping. You first calculate the average for each property, then throw away properties where the average is too low.</p>
+      <p><strong>"Retain trailing zeros":</strong> ROUND(10279.2, 2) should give 10279.20, not 10279.2. The ROUND function handles this.</p>
+      <p><strong>Think of it as:</strong> This is Q3 (Aggregate Marks) but with TWO tables instead of one, and MORE aggregate functions in the same query.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Analyze</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>Type:</strong> JOIN + GROUP BY + multiple aggregates + HAVING + ROUND</p>
+      <p><strong>Why it's harder:</strong> Two tables (need JOIN), five aggregates in one query, ROUND for decimals, HAVING on AVG.</p>
+      <p><strong>Key insight:</strong> This is just Q3 but with a JOIN on top and more aggregate functions. The pattern is identical.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Build the query piece by piece</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step"><div class="step-num">1</div><div class="step-content"><p><strong>Connect the tables:</strong> <code>FROM properties p JOIN cash_flows c ON p.id = c.property_id</code></p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><p><strong>Group by property:</strong> <code>GROUP BY p.id, p.name</code></p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-content"><p><strong>Calculate all stats:</strong> COUNT, MIN, MAX, ROUND(AVG, 2) — all in one SELECT</p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-content"><p><strong>Filter:</strong> <code>HAVING AVG(c.amount) > 10000</code></p></div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-content"><p><strong>Sort:</strong> <code>ORDER BY p.name ASC</code></p></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">SELECT</span>
+    p.name,
+    <span class="fn">COUNT</span>(c.amount)          <span class="kw">AS</span> cash_flows,
+    <span class="fn">MIN</span>(c.amount)            <span class="kw">AS</span> min_cash_flow,
+    <span class="fn">MAX</span>(c.amount)            <span class="kw">AS</span> max_cash_flow,
+    <span class="fn">ROUND</span>(<span class="fn">AVG</span>(c.amount), <span class="num">2</span>)  <span class="kw">AS</span> avg_cash_flow
+<span class="kw">FROM</span> properties p
+<span class="kw">JOIN</span> cash_flows c <span class="kw">ON</span> p.id = c.property_id
+<span class="kw">GROUP BY</span> p.id, p.name
+<span class="kw">HAVING</span> <span class="fn">AVG</span>(c.amount) > <span class="num">10000</span>
+<span class="kw">ORDER BY</span> p.name <span class="kw">ASC</span>;</pre>
+
+      <div class="warning">
+        <strong>Common mistakes on this type:</strong>
+        <br>1. Forgetting JOIN → you can't access both tables without it
+        <br>2. Using WHERE instead of HAVING for the AVG filter
+        <br>3. Forgetting ROUND → wrong decimal places
+        <br>4. Forgetting GROUP BY → aggregates won't work per property
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 5 ======== -->
+<div class="question" data-q="4">
+  <div class="tag-row">
+    <span class="tag tag-sql">SQL — JOINs + Date Functions</span>
+    <span class="tag tag-difficulty">Hard</span>
+  </div>
+  <h2>Q5: Video Processing — Total Execution Time</h2>
+
+  <div class="q-statement">
+    Two tables: <code>tasks(id, hash)</code> and <code>processes(task_id, start_dt, end_dt)</code>. Calculate total execution time in seconds for each task across all its processes. Return <code>hash</code> and <code>usage_time</code>. Sort by usage_time DESC.
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> A video processing system has "tasks." Each task runs multiple "processes." Each process has a start time and an end time. You need to find out: how many TOTAL seconds did each task spend processing?</p>
+      <p><strong>Example:</strong> Task 1 has 3 processes. Process A ran for 619 seconds, Process B for 933 seconds, Process C for 3141 seconds. Total: 619 + 933 + 3141 = 4693 seconds.</p>
+      <p><strong>The tricky part:</strong> How do you calculate "619 seconds" from two timestamps like "2023-04-20 02:01:16" and "2023-04-20 02:11:35"? That's where TIMESTAMPDIFF comes in — it calculates the difference between two dates/times in whatever unit you want.</p>
+      <p><strong>"hash"</strong> is just a unique identifier string for each task. Think of it as the task's name. You need to show it in the output.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Analyze</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>Type:</strong> JOIN + date arithmetic + SUM + GROUP BY</p>
+      <p><strong>New concept:</strong> TIMESTAMPDIFF (MySQL) or EXTRACT EPOCH (PostgreSQL) to calculate seconds between two timestamps.</p>
+      <p><strong>Key insight:</strong> Each task has MULTIPLE processes. You need to calculate the duration of EACH process (end - start), then SUM them all for each task.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2 + 3</span> — Solution (both MySQL and PostgreSQL)</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="cm">-- MySQL:</span>
+<span class="kw">SELECT</span> t.hash,
+    <span class="fn">SUM</span>(<span class="fn">TIMESTAMPDIFF</span>(SECOND, p.start_dt, p.end_dt)) <span class="kw">AS</span> usage_time
+<span class="kw">FROM</span> tasks t
+<span class="kw">JOIN</span> processes p <span class="kw">ON</span> t.id = p.task_id
+<span class="kw">GROUP BY</span> t.hash
+<span class="kw">ORDER BY</span> usage_time <span class="kw">DESC</span>;</pre>
+
+<pre><span class="cm">-- PostgreSQL:</span>
+<span class="kw">SELECT</span> t.hash,
+    <span class="fn">SUM</span>(<span class="fn">EXTRACT</span>(EPOCH <span class="kw">FROM</span>
+        (p.end_dt::timestamp - p.start_dt::timestamp)
+    ))::int <span class="kw">AS</span> usage_time
+<span class="kw">FROM</span> tasks t
+<span class="kw">JOIN</span> processes p <span class="kw">ON</span> t.id = p.task_id
+<span class="kw">GROUP BY</span> t.hash
+<span class="kw">ORDER BY</span> usage_time <span class="kw">DESC</span>;</pre>
+
+      <div class="key-point">
+        <strong>Date/time functions to remember:</strong>
+        <br><strong>MySQL:</strong> <code>TIMESTAMPDIFF(SECOND, start, end)</code> — gives difference in seconds
+        <br><strong>PostgreSQL:</strong> <code>EXTRACT(EPOCH FROM (end - start))</code> — gives difference in seconds
+        <br><br>Check which language the exam uses! (shown in top-right of HackerRank editor)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 6 ======== -->
+<div class="question" data-q="5">
+  <div class="tag-row">
+    <span class="tag tag-api">REST API — Java</span>
+    <span class="tag tag-difficulty">Hard</span>
+  </div>
+  <h2>Q6: Energy Bar — Chocolate API</h2>
+
+  <div class="q-statement">
+    Given a country, call the chocolate API. Find the chocolate with the most energy per gram. Energy = <code>kcal × 0.01 × average_weight</code>. For multiple weights, use average (floored). If tied on energy, pick the one with lowest average price (floored). Return <code>"brand:type"</code>.
+    <br><br><strong>API:</strong> <code>https://jsonmock.hackerrank.com/api/chocolates?countryOfOrigin={country}&page={num}</code>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> There's a database of chocolates on the internet. You access it by visiting a URL. The URL gives you data in JSON format. Your job is to: visit the URL, read the data, do some math, and find the best chocolate.</p>
+      <p><strong>"Energy per gram":</strong> Each chocolate has a kcal value (energy) and a weight. Energy per gram = kcal × 0.01 × weight. Higher = more energy = better. You want the chocolate with the MOST energy per gram.</p>
+      <p><strong>"Multiple weights":</strong> A chocolate might come in different pack sizes [125g, 71g, 116g]. You average them: (125+71+116)/3 = 104. Use integer division (no decimals).</p>
+      <p><strong>"Pagination":</strong> There are too many chocolates to send at once. The API sends them in PAGES (page 1, page 2...). You need to check ALL pages to find the best one.</p>
+      <p><strong>"Tiebreaker":</strong> If two chocolates have the same energy, pick the one with the lower average price.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Break down the problem</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>This question stacks 5 concepts:</strong></p>
+      <ol>
+        <li>Call an API from Java (HTTP GET)</li>
+        <li>Parse JSON response</li>
+        <li>Handle pagination (loop all pages)</li>
+        <li>Calculate: average weight, energy per gram</li>
+        <li>Compare and track the best (with tiebreaker)</li>
+      </ol>
+      <p><strong>Strategy:</strong> Use the template from the concepts page. Only change the calculation logic inside the loop.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — The math</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="data-flow">
+        <div class="data-flow-title">Calculation for one chocolate</div>
+        <p style="font-size:14px;">Weights: [125, 71, 116, 100, 126] → Average = (125+71+116+100+126) / 5 = 107.6 → Floor = <strong>107</strong></p>
+        <p style="font-size:14px;">kcal: 384</p>
+        <p style="font-size:14px;">Energy = kcal × 0.01 × avgWeight = 384 × 0.01 × 107 = 410.88 → Floor = <strong>410</strong></p>
+        <p style="font-size:14px; margin-bottom:0;">Prices: [614, 283, 564, 365, 689] → Average = 503 (for tiebreaker)</p>
+      </div>
+<pre><span class="cm">// Average weight (integer division = automatic floor)</span>
+<span class="type">int</span> totalW = <span class="num">0</span>;
+<span class="kw">for</span> (<span class="type">int</span> j = <span class="num">0</span>; j < weights.<span class="fn">length</span>(); j++) totalW += weights.<span class="fn">getInt</span>(j);
+<span class="type">int</span> avgWeight = totalW / weights.<span class="fn">length</span>();  <span class="cm">// 538 / 5 = 107</span>
+
+<span class="cm">// Energy per gram (cast to int = floor)</span>
+<span class="type">int</span> energy = (<span class="type">int</span>)(kcal * <span class="num">0.01</span> * avgWeight);  <span class="cm">// 410</span></pre>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p>Full solution is on the <a href="index.html#rest" style="color:var(--accent);">concepts page under REST API → Solving the Energy Bar Question</a>. The key logic inside the loop:</p>
+<pre><span class="cm">// Compare: highest energy wins. If tie, lowest price wins.</span>
+<span class="kw">if</span> (energy > maxEnergy || (energy == maxEnergy && avgPrice < minPrice)) {
+    maxEnergy = energy;
+    minPrice = avgPrice;
+    bestBrand = brand;
+    bestType = type;
+}</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 7 ======== -->
+<div class="question" data-q="6">
+  <div class="tag-row">
+    <span class="tag tag-api">REST API — Java</span>
+    <span class="tag tag-difficulty">Hard</span>
+  </div>
+  <h2>Q7: Highest International Students</h2>
+
+  <div class="q-statement">
+    Given two city names, query a university API. Find the university with the highest number of international students in the <strong>first</strong> city. If no university exists in the first city, use the <strong>second</strong> city instead.
+    <br><br><strong>API:</strong> <code>https://jsonmock.hackerrank.com/api/universities?page={num}</code>
+    <br><br>
+    <strong>Trap:</strong> <code>international_students</code> is a STRING with commas like <code>"15,075"</code>, not a number!
+    <br><strong>Trap:</strong> City is inside a nested <code>location</code> object.
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> There's a database of universities. Each university has a city (inside a "location" object) and a number of international students. You're given TWO city names.</p>
+      <p><strong>Step 1:</strong> Look at all universities in the FIRST city. Find the one with the most international students. Return its name.</p>
+      <p><strong>Step 2:</strong> If NO university exists in the first city at all, THEN look in the SECOND city instead.</p>
+      <p><strong>The traps:</strong></p>
+      <ul>
+        <li>The city is NOT a top-level field. It's <code>location.city</code> — an object inside an object. You need <code>getJSONObject("location").getString("city")</code></li>
+        <li>The number <code>"15,075"</code> is stored as a STRING with a comma. You need to remove the comma before converting to a number.</li>
+        <li>You must check ALL pages of the API (pagination), not just page 1.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Key differences from Energy Bar</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <ol>
+        <li><strong>No query parameter</strong> — you fetch ALL universities, then filter by city yourself</li>
+        <li><strong>Nested JSON</strong> — city is inside <code>location.city</code>, not at top level</li>
+        <li><strong>String numbers</strong> — <code>"15,075"</code> must be cleaned: remove commas, then parseInt</li>
+        <li><strong>Fallback logic</strong> — try city1 first, if null try city2</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Step-by-step approach</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step"><div class="step-num">1</div><div class="step-content"><p>Write a helper method <code>findBestInCity(String city)</code> that loops through all API pages, filters by city, and returns the university name with most international students (or null if none found).</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><p>In the main method: call <code>findBestInCity(firstCity)</code>. If result is null, call <code>findBestInCity(secondCity)</code>.</p></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Critical code patterns</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="cm">// Getting city from nested location object:</span>
+<span class="type">String</span> city = uni.<span class="fn">getJSONObject</span>(<span class="str">"location"</span>).<span class="fn">getString</span>(<span class="str">"city"</span>);
+
+<span class="cm">// Parsing "15,075" → 15075:</span>
+<span class="type">String</span> raw = uni.<span class="fn">getString</span>(<span class="str">"international_students"</span>);
+<span class="type">int</span> students = <span class="type">Integer</span>.<span class="fn">parseInt</span>(raw.<span class="fn">replace</span>(<span class="str">","</span>, <span class="str">""</span>));
+
+<span class="cm">// Fallback logic:</span>
+<span class="type">String</span> result = <span class="fn">findBestInCity</span>(firstCity);
+<span class="kw">if</span> (result == <span class="kw">null</span>) result = <span class="fn">findBestInCity</span>(secondCity);
+<span class="kw">return</span> result;</pre>
+
+      <div class="warning">
+        <strong>If you forget <code>.replace(",", "")</code></strong> → <code>Integer.parseInt("15,075")</code> throws NumberFormatException and your code crashes. Always clean string numbers before parsing!
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Pattern for all API questions</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="key-point">
+        <strong>Every REST API question follows this structure:</strong>
+        <br>1. <strong>Connect</strong> — HttpClient or HttpURLConnection (same every time)
+        <br>2. <strong>Paginate</strong> — while loop through all pages (same every time)
+        <br>3. <strong>Parse</strong> — JSONObject + getJSONArray("data") (same every time)
+        <br>4. <strong>Filter</strong> — check if this item matches criteria (CHANGES per question)
+        <br>5. <strong>Calculate</strong> — compute the value you're comparing (CHANGES per question)
+        <br>6. <strong>Track best</strong> — compare with current max/min (CHANGES per question)
+        <br><br>
+        Steps 1-3 are IDENTICAL. Only 4-6 change. Memorize 1-3 as a template.
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main -->
+
+<script>
+let current = 0;
+const questions = document.querySelectorAll('.question');
+const total = questions.length;
+
+function render() {
+  questions.forEach((q, i) => q.classList.toggle('active', i === current));
+  document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+  document.getElementById('prevBtn').disabled = current === 0;
+  document.getElementById('nextBtn').disabled = current === total - 1;
+
+  // dots
+  const dots = document.getElementById('dots');
+  dots.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'q-dot' + (i === current ? ' active' : '');
+    d.onclick = () => { current = i; render(); window.scrollTo(0, 0); };
+    dots.appendChild(d);
+  }
+}
+
+function navigate(dir) {
+  current = Math.max(0, Math.min(total - 1, current + dir));
+  render();
+  window.scrollTo(0, 0);
+}
+
+function togglePhase(header) {
+  header.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
+}
+
+// keyboard nav
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') navigate(1);
+  if (e.key === 'ArrowLeft') navigate(-1);
+});
+
+render();
+</script>
+</body>
+</html>
