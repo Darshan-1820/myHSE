@@ -140,7 +140,7 @@ li { margin-bottom: 8px; line-height: 1.8; }
   </div>
   <div class="topbar-right">
     <div class="q-dots" id="dots"></div>
-    <span class="q-counter" id="counter">1 / 7</span>
+    <span class="q-counter" id="counter">1 / 8</span>
     <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">&#9664; Prev</button>
     <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Next &#9654;</button>
   </div>
@@ -748,8 +748,8 @@ li { margin-bottom: 8px; line-height: 1.8; }
       </div>
 <pre><span class="cm">// Average weight (integer division = automatic floor)</span>
 <span class="type">int</span> totalW = <span class="num">0</span>;
-<span class="kw">for</span> (<span class="type">int</span> j = <span class="num">0</span>; j < weights.<span class="fn">length</span>(); j++) totalW += weights.<span class="fn">getInt</span>(j);
-<span class="type">int</span> avgWeight = totalW / weights.<span class="fn">length</span>();  <span class="cm">// 538 / 5 = 107</span>
+<span class="kw">for</span> (<span class="type">int</span> j = <span class="num">0</span>; j < weights.<span class="fn">size</span>(); j++) totalW += weights.<span class="fn">get</span>(j).<span class="fn">getAsInt</span>();
+<span class="type">int</span> avgWeight = totalW / weights.<span class="fn">size</span>();  <span class="cm">// 538 / 5 = 107</span>
 
 <span class="cm">// Energy per gram (cast to int = floor)</span>
 <span class="type">int</span> energy = (<span class="type">int</span>)(kcal * <span class="num">0.01</span> * avgWeight);  <span class="cm">// 410</span></pre>
@@ -836,24 +836,82 @@ li { margin-bottom: 8px; line-height: 1.8; }
 
   <div class="phase">
     <div class="phase-header" onclick="togglePhase(this)">
-      <span><span class="phase-num">Phase 3</span> — Critical code patterns</span>
+      <span><span class="phase-num">Phase 3</span> — Complete solution (copy-paste ready)</span>
       <span class="arrow">&#9654;</span>
     </div>
     <div class="phase-body">
-<pre><span class="cm">// Getting city from nested location object:</span>
-<span class="type">String</span> city = uni.<span class="fn">getJSONObject</span>(<span class="str">"location"</span>).<span class="fn">getString</span>(<span class="str">"city"</span>);
 
-<span class="cm">// Parsing "15,075" → 15075:</span>
-<span class="type">String</span> raw = uni.<span class="fn">getString</span>(<span class="str">"international_students"</span>);
-<span class="type">int</span> students = <span class="type">Integer</span>.<span class="fn">parseInt</span>(raw.<span class="fn">replace</span>(<span class="str">","</span>, <span class="str">""</span>));
+      <div class="warning">
+        <strong>Why <code>getAs...</code> instead of constructors?</strong><br>
+        HackerRank uses <strong>Gson</strong> (Google's JSON library), NOT org.json. In Gson, <code>new JsonObject(string)</code> does NOT exist — that constructor doesn't work! Instead you use <code>JsonParser.parseString(res).getAsJsonObject()</code>. Same for values: <code>.get("key").getAsString()</code> instead of <code>.getString("key")</code>. If you try the org.json way, you'll get a compilation error.
+      </div>
 
-<span class="cm">// Fallback logic:</span>
-<span class="type">String</span> result = <span class="fn">findBestInCity</span>(firstCity);
-<span class="kw">if</span> (result == <span class="kw">null</span>) result = <span class="fn">findBestInCity</span>(secondCity);
-<span class="kw">return</span> result;</pre>
+<pre><span class="cm">// Helper method — finds best university in a given city</span>
+<span class="kw">public static</span> <span class="type">String</span> <span class="fn">findBestInCity</span>(<span class="type">String</span> city) <span class="kw">throws</span> Exception {
+    <span class="type">String</span> bestName = <span class="kw">null</span>;          <span class="cm">// null = "haven't found any yet"</span>
+    <span class="type">int</span> maxStudents = -<span class="num">1</span>;             <span class="cm">// start below 0 so any real number wins</span>
+    <span class="type">int</span> page = <span class="num">1</span>, totalPages = <span class="num">1</span>;     <span class="cm">// start at 1, will update after first call</span>
+
+    <span class="kw">while</span> (page <= totalPages) {
+        <span class="type">String</span> url = <span class="str">"https://jsonmock.hackerrank.com/api/universities?page="</span> + page;
+
+        <span class="cm">// ---- HTTP GET (same template as Q6) ----</span>
+        <span class="type">String</span> res = HttpClient.<span class="fn">newHttpClient</span>()
+            .<span class="fn">send</span>(HttpRequest.<span class="fn">newBuilder</span>().<span class="fn">uri</span>(URI.<span class="fn">create</span>(url)).<span class="fn">build</span>(),
+                  HttpResponse.BodyHandlers.<span class="fn">ofString</span>()).<span class="fn">body</span>();
+
+        <span class="cm">// ---- Parse JSON ----</span>
+        JsonObject json = JsonParser.<span class="fn">parseString</span>(res).<span class="fn">getAsJsonObject</span>();
+        totalPages = json.<span class="fn">get</span>(<span class="str">"total_pages"</span>).<span class="fn">getAsInt</span>();
+        JsonArray data = json.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);
+
+        <span class="cm">// ---- Loop through universities on this page ----</span>
+        <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i < data.<span class="fn">size</span>(); i++) {
+            JsonObject uni = data.<span class="fn">get</span>(i).<span class="fn">getAsJsonObject</span>();
+
+            <span class="cm">// City is NESTED inside location object</span>
+            <span class="type">String</span> uniCity = uni.<span class="fn">getAsJsonObject</span>(<span class="str">"location"</span>)
+                                .<span class="fn">get</span>(<span class="str">"city"</span>).<span class="fn">getAsString</span>();
+
+            <span class="kw">if</span> (!uniCity.<span class="fn">equals</span>(city)) <span class="kw">continue</span>;  <span class="cm">// skip if wrong city</span>
+
+            <span class="cm">// "15,075" → remove comma → parse to int</span>
+            <span class="type">String</span> raw = uni.<span class="fn">get</span>(<span class="str">"international_students"</span>).<span class="fn">getAsString</span>();
+            <span class="type">int</span> students = Integer.<span class="fn">parseInt</span>(raw.<span class="fn">replace</span>(<span class="str">","</span>, <span class="str">""</span>));
+
+            <span class="kw">if</span> (students > maxStudents) {
+                maxStudents = students;
+                bestName = uni.<span class="fn">get</span>(<span class="str">"university"</span>).<span class="fn">getAsString</span>();
+            }
+        }
+        page++;
+    }
+    <span class="kw">return</span> bestName;  <span class="cm">// null if no university found in this city</span>
+}
+
+<span class="cm">// ---- Main method ----</span>
+<span class="kw">public static</span> <span class="type">String</span> <span class="fn">highestInternationalStudents</span>(<span class="type">String</span> firstCity, <span class="type">String</span> secondCity) {
+    <span class="kw">try</span> {
+        <span class="type">String</span> result = <span class="fn">findBestInCity</span>(firstCity);
+        <span class="kw">if</span> (result == <span class="kw">null</span>) result = <span class="fn">findBestInCity</span>(secondCity);
+        <span class="kw">return</span> result;
+    } <span class="kw">catch</span> (Exception e) {
+        <span class="kw">return</span> <span class="str">""</span>;
+    }
+}</pre>
 
       <div class="warning">
         <strong>If you forget <code>.replace(",", "")</code></strong> → <code>Integer.parseInt("15,075")</code> throws NumberFormatException and your code crashes. Always clean string numbers before parsing!
+      </div>
+
+      <div class="data-flow">
+        <div class="data-flow-title">How the fallback logic works</div>
+        <table>
+          <tr><th>Scenario</th><th>firstCity result</th><th>secondCity result</th><th>Final answer</th></tr>
+          <tr><td>Universities exist in first city</td><td>"MIT" (not null)</td><td>Never called</td><td><strong>"MIT"</strong></td></tr>
+          <tr><td>No universities in first city</td><td>null</td><td>"Oxford"</td><td><strong>"Oxford"</strong></td></tr>
+          <tr><td>No universities in either city</td><td>null</td><td>null</td><td><strong>null</strong></td></tr>
+        </table>
       </div>
     </div>
   </div>
@@ -874,6 +932,318 @@ li { margin-bottom: 8px; line-height: 1.8; }
         <br>6. <strong>Track best</strong> — compare with current max/min (CHANGES per question)
         <br><br>
         Steps 1-3 are IDENTICAL. Only 4-6 change. Memorize 1-3 as a template.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 8 ======== -->
+<div class="question" data-q="7">
+  <div class="tag-row">
+    <span class="tag tag-api">REST API — Java (Gson)</span>
+    <span class="tag tag-difficulty">Hard</span>
+  </div>
+  <h2>Q8: Best TV Shows in Genre</h2>
+
+  <div class="q-statement">
+    Use HTTP GET to retrieve TV series from <code>https://jsonmock.hackerrank.com/api/tvseries?page={num}</code>. Given a genre, find the series with the <strong>highest imdb_rating</strong>. If there is a tie, return the <strong>alphabetically lower name</strong>.
+    <br><br>
+    <strong>Response fields:</strong> <code>page</code>, <code>per_page</code>, <code>total</code>, <code>total_pages</code>, <code>data</code> (array)
+    <br><br>
+    <strong>Each TV series object in data:</strong>
+    <table style="margin-top:8px; width:auto;">
+      <tr><th>Field</th><th>Type</th><th>Example</th></tr>
+      <tr><td>name</td><td>String</td><td>"Game of Thrones"</td></tr>
+      <tr><td>genre</td><td>String</td><td>"Action, Adventure, Drama"</td></tr>
+      <tr><td>imdb_rating</td><td>Number</td><td>9.3</td></tr>
+      <tr><td>runtime_of_series</td><td>String</td><td>"(2011-2019)"</td></tr>
+      <tr><td>certificate</td><td>String</td><td>"A"</td></tr>
+      <tr><td>runtime_of_episodes</td><td>String</td><td>"57 min"</td></tr>
+      <tr><td>overview</td><td>String</td><td>"Nine noble families fight..."</td></tr>
+      <tr><td>no_of_votes</td><td>Number</td><td>1773458</td></tr>
+      <tr><td>id</td><td>Number</td><td>1</td></tr>
+    </table>
+    <br>
+    <strong>Sample:</strong> <code>bestInGenre("Action")</code> → <code>"Game of Thrones"</code>
+    <br>The 4 highest-rated shows in "Action" are: Game of Thrones (9.3), Avatar: The Last Airbender (9.2), Hagane no renkinjutsushi (9.1), Shingeki no kyojin (8.9).
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> There's an API that gives you a list of TV shows. Each show has a genre (like "Action, Adventure, Drama") and a rating. You get a genre name (like "Action"). You need to find the show with the highest rating IN that genre.</p>
+      <p><strong>"If there is a tie, return the alphabetically lower name":</strong> If two shows both have 9.3 rating, pick the one whose name comes FIRST in dictionary order. "Avatar" < "Game of Thrones" because 'A' < 'G'. So "Avatar" would win the tie.</p>
+      <p><strong>Key detail — genre is a comma-separated string:</strong> The genre field says <code>"Action, Adventure, Drama"</code> — it's ONE string with multiple genres separated by commas. So when you search for "Action", you use <code>.contains("Action")</code> to check if that genre appears anywhere in the string.</p>
+      <p><strong>Pagination:</strong> Same as Q6 and Q7 — the API sends data in pages. You must loop through ALL pages to find the best show.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — What makes this different from Q6 and Q7?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <table>
+        <tr><th>Aspect</th><th>Q6 (Chocolate)</th><th>Q7 (Universities)</th><th>Q8 (TV Shows)</th></tr>
+        <tr><td>Filter by</td><td>Country (query param)</td><td>City (nested object)</td><td>Genre (contains check)</td></tr>
+        <tr><td>Compare</td><td>Energy (calculated)</td><td>Students (string→int)</td><td>imdb_rating (double)</td></tr>
+        <tr><td>Tiebreaker</td><td>Lowest price</td><td>None</td><td>Alphabetically lower name</td></tr>
+        <tr><td>Tricky part</td><td>Math formula</td><td>Nested JSON + comma in number</td><td>Genre contains + compareTo</td></tr>
+      </table>
+      <p style="margin-top:16px;"><strong>This is the simplest of the three API questions.</strong> No math formula, no nested objects, no string-to-number cleaning. Just: filter by genre, compare ratings, handle tie with alphabetical order.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Step-by-step approach</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step"><div class="step-num">1</div><div class="step-content"><p>Start with page=1. Loop while <code>page <= total_pages</code></p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><p>For each page: call the API URL, get JSON response</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-content"><p>Parse the response. Update total_pages from the JSON. Get the "data" array.</p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-content"><p>For each show in data: check if its genre <code>contains</code> the target genre. If not, skip it.</p></div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-content"><p>If it matches: compare its imdb_rating with the current best. If higher → new best. If equal → check alphabetical order with <code>compareTo</code>.</p></div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-content"><p>After all pages, return the best name.</p></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution with EVERY line explained</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+
+      <div class="warning">
+        <strong>Why <code>getAsJsonObject()</code> instead of <code>new JsonObject()</code>?</strong><br>
+        HackerRank Java 17 uses <strong>Gson</strong> library. In Gson, the <code>JsonObject</code> class has NO constructor that accepts a string. If you write <code>new JsonObject(res)</code>, you get: <em>"constructor JsonObject() is not applicable"</em>. Instead, you parse the string first with <code>JsonParser.parseString()</code>, then convert to JsonObject with <code>.getAsJsonObject()</code>.
+      </div>
+
+<pre><span class="kw">public static</span> <span class="type">String</span> <span class="fn">bestInGenre</span>(<span class="type">String</span> genre) {</pre>
+      <div class="analogy">
+        <code>public</code> — anyone can call this method<br>
+        <code>static</code> — belongs to the class, not to an object (you call it as <code>Result.bestInGenre()</code>, not <code>new Result().bestInGenre()</code>)<br>
+        <code>String</code> — this method returns a String (the name of the best show)<br>
+        <code>bestInGenre</code> — method name<br>
+        <code>(String genre)</code> — takes one input: the genre to search for (e.g., "Action")
+      </div>
+
+<pre>    <span class="kw">try</span> {</pre>
+      <div class="analogy">
+        <code>try</code> — "try to run this code. If anything goes wrong (network error, bad JSON, etc.), jump to the <code>catch</code> block instead of crashing." API calls can fail (server down, no internet), so we MUST wrap them in try-catch.
+      </div>
+
+<pre>        <span class="type">String</span> bestName = <span class="str">""</span>;
+        <span class="type">double</span> bestRating = -<span class="num">1.0</span>;
+        <span class="type">int</span> page = <span class="num">1</span>, total_pages = <span class="num">1</span>;</pre>
+      <div class="analogy">
+        <code>String bestName = ""</code> — variable to store the name of the best show found so far. Starts empty.<br>
+        <code>double bestRating = -1.0</code> — the highest rating found so far. Starts at -1.0 because ALL real ratings (0.0 to 10.0) are higher than -1, so the first show we find will automatically become the best.<br>
+        <code>int page = 1</code> — which page we're currently on. API pages start at 1.<br>
+        <code>int total_pages = 1</code> — how many pages exist. We set it to 1 for now — after the first API call, we'll update it to the real number from the response.
+      </div>
+
+<pre>        <span class="kw">while</span> (page <= total_pages) {</pre>
+      <div class="analogy">
+        <code>while</code> — keep looping AS LONG AS this condition is true<br>
+        <code>page <= total_pages</code> — "keep going while current page is less than or equal to total pages." If there are 3 pages, this runs for page=1, page=2, page=3, then stops at page=4.<br><br>
+        <strong>Why <code><=</code> and not <code><</code>?</strong> If you use <code>page < total_pages</code>, you would skip the LAST page! With 3 total pages: <code>page < 3</code> only runs pages 1 and 2, missing page 3. With <code>page <= 3</code>, all three pages get processed.
+      </div>
+
+<pre>            <span class="type">String</span> url = <span class="str">"https://jsonmock.hackerrank.com/api/tvseries?page="</span> + page;</pre>
+      <div class="analogy">
+        Builds the URL by sticking the page number at the end. When page=1: <code>"...?page=1"</code>. When page=2: <code>"...?page=2"</code>. The <code>+</code> operator on strings does concatenation (joining).
+      </div>
+
+<pre>            <span class="type">String</span> res = HttpClient.<span class="fn">newHttpClient</span>()
+                .<span class="fn">send</span>(HttpRequest.<span class="fn">newBuilder</span>().<span class="fn">uri</span>(URI.<span class="fn">create</span>(url)).<span class="fn">build</span>(),
+                      HttpResponse.BodyHandlers.<span class="fn">ofString</span>()).<span class="fn">body</span>();</pre>
+      <div class="analogy">
+        This single line does A LOT. Let's break it down piece by piece:<br><br>
+        <code>HttpClient.newHttpClient()</code> — creates a new HTTP client (the "browser" that will make the request)<br>
+        <code>HttpRequest.newBuilder()</code> — starts building a request<br>
+        <code>.uri(URI.create(url))</code> — sets the URL to visit<br>
+        <code>.build()</code> — finishes building the request object<br>
+        <code>.send(...)</code> — actually sends the request to the server and waits for a response<br>
+        <code>HttpResponse.BodyHandlers.ofString()</code> — tells Java "I want the response as a String"<br>
+        <code>.body()</code> — extracts just the response body (the JSON text)<br><br>
+        <strong>Result:</strong> <code>res</code> now contains the raw JSON string like <code>{"page":1,"per_page":10,"total":30,"total_pages":3,"data":[...]}</code>
+      </div>
+
+<pre>            JsonObject json = JsonParser.<span class="fn">parseString</span>(res).<span class="fn">getAsJsonObject</span>();</pre>
+      <div class="analogy">
+        <code>JsonParser.parseString(res)</code> — takes the raw JSON string and parses it into a structured object that Java can navigate<br>
+        <code>.getAsJsonObject()</code> — converts the parsed result into a <code>JsonObject</code> (because the top-level JSON is <code>{...}</code>, which is an object)<br><br>
+        <strong>Why not <code>new JsonObject(res)</code>?</strong> Because Gson's <code>JsonObject</code> class doesn't HAVE a constructor that accepts strings. This is a Gson quirk — you MUST use <code>JsonParser.parseString()</code> first.
+      </div>
+
+<pre>            total_pages = json.<span class="fn">get</span>(<span class="str">"total_pages"</span>).<span class="fn">getAsInt</span>();</pre>
+      <div class="analogy">
+        <code>json.get("total_pages")</code> — looks up the field called "total_pages" in the JSON object. Returns a <code>JsonElement</code>.<br>
+        <code>.getAsInt()</code> — converts that JsonElement to a plain Java <code>int</code><br><br>
+        After page 1, this updates our <code>total_pages</code> from the initial guess of 1 to the REAL number (e.g., 3). Now the while loop knows to continue for pages 2 and 3.
+      </div>
+
+<pre>            JsonArray data = json.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);</pre>
+      <div class="analogy">
+        <code>json.getAsJsonArray("data")</code> — gets the "data" field and converts it to a <code>JsonArray</code>. The "data" field contains the array of TV shows for this page. Each element in this array is one TV show object.
+      </div>
+
+<pre>            <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i < data.<span class="fn">size</span>(); i++) {</pre>
+      <div class="analogy">
+        <code>for</code> — loop through each TV show on this page<br>
+        <code>int i = 0</code> — start at the first show (index 0)<br>
+        <code>i < data.size()</code> — keep going while i is less than the number of shows. If there are 10 shows, this runs for i=0,1,2,...,9<br>
+        <code>i++</code> — after each iteration, move to the next show
+      </div>
+
+<pre>                JsonObject s = data.<span class="fn">get</span>(i).<span class="fn">getAsJsonObject</span>();</pre>
+      <div class="analogy">
+        <code>data.get(i)</code> — gets the i-th element from the data array. Returns a <code>JsonElement</code>.<br>
+        <code>.getAsJsonObject()</code> — converts it to a <code>JsonObject</code> so we can access its fields (name, genre, imdb_rating, etc.)<br>
+        We call it <code>s</code> (short for "show") to keep the code compact.
+      </div>
+
+<pre>                <span class="kw">if</span> (!s.<span class="fn">get</span>(<span class="str">"genre"</span>).<span class="fn">getAsString</span>().<span class="fn">contains</span>(genre)) <span class="kw">continue</span>;</pre>
+      <div class="analogy">
+        <code>s.get("genre")</code> — gets the genre field (e.g., "Action, Adventure, Drama")<br>
+        <code>.getAsString()</code> — converts to a Java String<br>
+        <code>.contains(genre)</code> — checks if the genre string contains our target genre. <code>"Action, Adventure, Drama".contains("Action")</code> → <code>true</code><br>
+        <code>!</code> — the NOT operator. Flips true→false and false→true. So <code>!...contains(genre)</code> means "does NOT contain the genre"<br>
+        <code>continue</code> — skip the rest of this loop iteration and jump to the next show<br><br>
+        <strong>In English:</strong> "If this show's genre does NOT contain our target genre, skip it and move to the next show."
+      </div>
+
+<pre>                <span class="type">double</span> r = s.<span class="fn">get</span>(<span class="str">"imdb_rating"</span>).<span class="fn">getAsDouble</span>();
+                <span class="type">String</span> n = s.<span class="fn">get</span>(<span class="str">"name"</span>).<span class="fn">getAsString</span>();</pre>
+      <div class="analogy">
+        <code>s.get("imdb_rating").getAsDouble()</code> — gets the rating as a <code>double</code> (decimal number like 9.3). We use <code>double</code> because ratings have decimals.<br>
+        <code>s.get("name").getAsString()</code> — gets the show name as a String (like "Game of Thrones").<br>
+        We use short names <code>r</code> and <code>n</code> because they're used right below in the comparison.
+      </div>
+
+<pre>                <span class="kw">if</span> (r > bestRating || (r == bestRating && n.<span class="fn">compareTo</span>(bestName) < <span class="num">0</span>)) {
+                    bestRating = r;
+                    bestName = n;
+                }</pre>
+      <div class="analogy">
+        This is the <strong>core comparison logic</strong>. Two conditions joined by <code>||</code> (OR):<br><br>
+        <strong>Condition 1:</strong> <code>r > bestRating</code> — "this show's rating is HIGHER than the best we've seen." If true, this show is the new best. Simple.<br><br>
+        <strong>Condition 2:</strong> <code>r == bestRating && n.compareTo(bestName) < 0</code> — "the rating is EQUAL to the best AND this show's name comes BEFORE the best name in the alphabet." This is the <strong>tiebreaker</strong>.<br><br>
+        <code>n.compareTo(bestName)</code> — returns:<br>
+        &nbsp;&nbsp;• Negative number if <code>n</code> comes BEFORE <code>bestName</code> alphabetically (e.g., "Avatar".compareTo("Game of Thrones") → negative, because A < G)<br>
+        &nbsp;&nbsp;• Zero if they're equal<br>
+        &nbsp;&nbsp;• Positive if <code>n</code> comes AFTER<br><br>
+        So <code>< 0</code> means "n comes first alphabetically" → that's what we want (alphabetically lower name wins the tie).<br><br>
+        <strong>If either condition is true:</strong> update <code>bestRating</code> and <code>bestName</code> to this show's values.
+      </div>
+
+<pre>            }
+            page++;</pre>
+      <div class="analogy">
+        <code>}</code> — closes the for loop (done with all shows on this page)<br>
+        <code>page++</code> — increment page from 1→2, 2→3, etc. Next iteration of the while loop will fetch the next page.
+      </div>
+
+<pre>        }
+
+        <span class="kw">return</span> bestName;</pre>
+      <div class="analogy">
+        <code>}</code> — closes the while loop (done with all pages)<br>
+        <code>return bestName</code> — send back the name of the show with the highest rating. This is what the caller gets.
+      </div>
+
+<pre>    } <span class="kw">catch</span> (Exception e) {
+        <span class="kw">return</span> <span class="str">""</span>;
+    }
+}</pre>
+      <div class="analogy">
+        <code>catch (Exception e)</code> — if ANYTHING went wrong in the try block (network error, JSON parsing error, etc.), execution jumps here.<br>
+        <code>return ""</code> — return an empty string as a safe fallback. The caller gets "" instead of a crash.
+      </div>
+
+      <h4>Full code — copy-paste ready</h4>
+<pre><span class="kw">public static</span> <span class="type">String</span> <span class="fn">bestInGenre</span>(<span class="type">String</span> genre) {
+    <span class="kw">try</span> {
+        <span class="type">String</span> bestName = <span class="str">""</span>;
+        <span class="type">double</span> bestRating = -<span class="num">1.0</span>;
+        <span class="type">int</span> page = <span class="num">1</span>, total_pages = <span class="num">1</span>;
+
+        <span class="kw">while</span> (page <= total_pages) {
+            <span class="type">String</span> url = <span class="str">"https://jsonmock.hackerrank.com/api/tvseries?page="</span> + page;
+
+            <span class="type">String</span> res = HttpClient.<span class="fn">newHttpClient</span>()
+                .<span class="fn">send</span>(HttpRequest.<span class="fn">newBuilder</span>().<span class="fn">uri</span>(URI.<span class="fn">create</span>(url)).<span class="fn">build</span>(),
+                      HttpResponse.BodyHandlers.<span class="fn">ofString</span>()).<span class="fn">body</span>();
+
+            JsonObject json = JsonParser.<span class="fn">parseString</span>(res).<span class="fn">getAsJsonObject</span>();
+            total_pages = json.<span class="fn">get</span>(<span class="str">"total_pages"</span>).<span class="fn">getAsInt</span>();
+            JsonArray data = json.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);
+
+            <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i < data.<span class="fn">size</span>(); i++) {
+                JsonObject s = data.<span class="fn">get</span>(i).<span class="fn">getAsJsonObject</span>();
+
+                <span class="kw">if</span> (!s.<span class="fn">get</span>(<span class="str">"genre"</span>).<span class="fn">getAsString</span>().<span class="fn">contains</span>(genre)) <span class="kw">continue</span>;
+
+                <span class="type">double</span> r = s.<span class="fn">get</span>(<span class="str">"imdb_rating"</span>).<span class="fn">getAsDouble</span>();
+                <span class="type">String</span> n = s.<span class="fn">get</span>(<span class="str">"name"</span>).<span class="fn">getAsString</span>();
+
+                <span class="kw">if</span> (r > bestRating || (r == bestRating && n.<span class="fn">compareTo</span>(bestName) < <span class="num">0</span>)) {
+                    bestRating = r;
+                    bestName = n;
+                }
+            }
+            page++;
+        }
+
+        <span class="kw">return</span> bestName;
+
+    } <span class="kw">catch</span> (Exception e) {
+        <span class="kw">return</span> <span class="str">""</span>;
+    }
+}</pre>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Trace with genre = "Action"</div>
+        <table>
+          <tr><th>Page</th><th>Show</th><th>Genre contains "Action"?</th><th>Rating</th><th>Action</th></tr>
+          <tr><td>1</td><td>Game of Thrones</td><td style="color:var(--green);">Yes ("Action, Adventure, Drama")</td><td>9.3</td><td>9.3 > -1.0 → <strong>new best</strong></td></tr>
+          <tr><td>1</td><td>Stranger Things</td><td style="color:var(--red);">No ("Drama, Fantasy, Horror")</td><td>8.8</td><td>skipped</td></tr>
+          <tr><td>2</td><td>Avatar: TLA</td><td style="color:var(--green);">Yes ("Action, Adventure, Comedy")</td><td>9.2</td><td>9.2 < 9.3 → no change</td></tr>
+          <tr><td>2</td><td>Some Show X</td><td style="color:var(--green);">Yes</td><td>9.3</td><td>9.3 == 9.3 → "Some".compareTo("Game") > 0 → no change</td></tr>
+          <tr><td>3</td><td>Another Show</td><td style="color:var(--green);">Yes</td><td>9.3</td><td>9.3 == 9.3 → "Another".compareTo("Game") < 0 → <strong>new best!</strong></td></tr>
+        </table>
+        <p><strong>Final answer: the show with 9.3 rating whose name is alphabetically first</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Gson vs org.json cheat sheet</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p>HackerRank uses <strong>Gson</strong>. Many tutorials online use <strong>org.json</strong>. Here's how they differ:</p>
+      <table>
+        <tr><th>What you want to do</th><th>org.json (tutorials)</th><th>Gson (HackerRank)</th></tr>
+        <tr><td>Parse string → object</td><td><code>new JSONObject(res)</code></td><td><code>JsonParser.parseString(res).getAsJsonObject()</code></td></tr>
+        <tr><td>Get a string value</td><td><code>obj.getString("name")</code></td><td><code>obj.get("name").getAsString()</code></td></tr>
+        <tr><td>Get an int value</td><td><code>obj.getInt("total")</code></td><td><code>obj.get("total").getAsInt()</code></td></tr>
+        <tr><td>Get a double value</td><td><code>obj.getDouble("rating")</code></td><td><code>obj.get("rating").getAsDouble()</code></td></tr>
+        <tr><td>Get an array</td><td><code>obj.getJSONArray("data")</code></td><td><code>obj.getAsJsonArray("data")</code></td></tr>
+        <tr><td>Get nested object</td><td><code>obj.getJSONObject("loc")</code></td><td><code>obj.getAsJsonObject("loc")</code></td></tr>
+        <tr><td>Array element → object</td><td><code>arr.getJSONObject(i)</code></td><td><code>arr.get(i).getAsJsonObject()</code></td></tr>
+        <tr><td>Array length</td><td><code>arr.length()</code></td><td><code>arr.size()</code></td></tr>
+      </table>
+      <div class="key-point">
+        <strong>Memory trick:</strong> In Gson, everything goes through <code>.get("key")</code> first (returns a JsonElement), then you convert with <code>.getAsXxx()</code>. In org.json, you call <code>.getXxx("key")</code> directly. Gson is two steps, org.json is one step.
       </div>
     </div>
   </div>
