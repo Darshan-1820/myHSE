@@ -135,12 +135,13 @@ li { margin-bottom: 8px; line-height: 1.8; }
 
 <div class="topbar">
   <div class="topbar-left">
-    <a href="index.html">&larr; Back to Concepts</a>
+    <a href="index.html">&larr; Concepts</a>
     <span class="topbar-title">Practice Questions</span>
+    <a href="ide.html" style="color: var(--green);">&#9654; Open IDE</a>
   </div>
   <div class="topbar-right">
     <div class="q-dots" id="dots"></div>
-    <span class="q-counter" id="counter">1 / 8</span>
+    <span class="q-counter" id="counter">1 / 11</span>
     <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">&#9664; Prev</button>
     <button class="nav-btn" id="nextBtn" onclick="navigate(1)">Next &#9654;</button>
   </div>
@@ -526,6 +527,77 @@ li { margin-bottom: 8px; line-height: 1.8; }
       </div>
     </div>
   </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Deep Dive</span> — GROUP BY Internals + WHERE vs HAVING</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <h4>What GROUP BY Actually Does Inside</h4>
+      <p>GROUP BY creates <strong>"buckets"</strong> — it puts all rows with the same value into one bucket, then collapses each bucket into a single output row.</p>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Step-by-step: How SQL processes GROUP BY</div>
+        <p><strong>Step 1 — SQL reads all 5 rows from the table:</strong></p>
+        <table>
+          <tr><th>STUDENT_ID</th><th>MARKS</th></tr>
+          <tr><td>1</td><td>450</td></tr>
+          <tr><td>2</td><td>200</td></tr>
+          <tr><td>3</td><td>260</td></tr>
+          <tr><td>2</td><td>300</td></tr>
+          <tr><td>3</td><td>250</td></tr>
+        </table>
+
+        <p><strong>Step 2 — GROUP BY creates buckets by STUDENT_ID:</strong></p>
+<pre><span class="cm">Bucket for STUDENT_ID = 1:  [450]</span>
+<span class="cm">Bucket for STUDENT_ID = 2:  [200, 300]</span>
+<span class="cm">Bucket for STUDENT_ID = 3:  [260, 250]</span></pre>
+
+        <p><strong>Step 3 — Aggregate function runs on each bucket:</strong></p>
+        <table>
+          <tr><th>Bucket</th><th>Values</th><th>SUM()</th><th>COUNT()</th><th>AVG()</th><th>MIN()</th><th>MAX()</th></tr>
+          <tr><td>Student 1</td><td>[450]</td><td>450</td><td>1</td><td>450</td><td>450</td><td>450</td></tr>
+          <tr><td>Student 2</td><td>[200, 300]</td><td>500</td><td>2</td><td>250</td><td>200</td><td>300</td></tr>
+          <tr><td>Student 3</td><td>[260, 250]</td><td>510</td><td>2</td><td>255</td><td>250</td><td>260</td></tr>
+        </table>
+
+        <p><strong>Step 4 — HAVING filters these groups:</strong> Only keep SUM >= 500 &rarr; Student 1 removed.</p>
+      </div>
+
+      <h4>The Rule After GROUP BY</h4>
+      <p>Once you use GROUP BY, every column in SELECT <strong>must be either</strong>:</p>
+      <ol>
+        <li><strong>The grouped column itself</strong> (e.g., <code>STUDENT_ID</code>) — same for all rows in the bucket</li>
+        <li><strong>An aggregate function</strong> (<code>SUM</code>, <code>COUNT</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code>) — calculates ONE value from the bucket</li>
+      </ol>
+      <div class="warning">
+        <strong>This will ERROR:</strong>
+        <br><code>SELECT STUDENT_ID, MARKS FROM marks GROUP BY STUDENT_ID;</code>
+        <br><br>Why? Student 2's bucket has [200, 300]. If you ask for <code>MARKS</code>, which one should SQL show? It can't decide. You MUST use an aggregate function to tell SQL HOW to collapse multiple values into one.
+      </div>
+
+      <h4>WHERE vs HAVING — The Full Picture</h4>
+      <p><strong>SQL execution order:</strong></p>
+<pre><span class="kw">FROM</span> &rarr; <span class="kw">WHERE</span> &rarr; <span class="kw">GROUP BY</span> &rarr; <span class="kw">HAVING</span> &rarr; <span class="kw">SELECT</span> &rarr; <span class="kw">ORDER BY</span></pre>
+
+      <table>
+        <tr><th>Situation</th><th>Use</th><th>Why</th></tr>
+        <tr><td>Filter individual rows BEFORE grouping</td><td><code>WHERE</code></td><td>Runs at step 2, before groups exist</td></tr>
+        <tr><td>Filter groups AFTER grouping</td><td><code>HAVING</code></td><td>Runs at step 4, after groups are formed</td></tr>
+        <tr><td>Both needed</td><td>Use both!</td><td>WHERE shrinks data first, HAVING filters groups</td></tr>
+      </table>
+
+      <div class="analogy">
+        <strong>Example using both WHERE and HAVING together:</strong>
+        <br><br><code>SELECT STUDENT_ID, SUM(MARKS) as TOTAL FROM marks WHERE MARKS > 50 GROUP BY STUDENT_ID HAVING TOTAL >= 500 ORDER BY TOTAL DESC;</code>
+        <br><br><strong>Step 1:</strong> WHERE throws away any individual mark &le; 50
+        <br><strong>Step 2:</strong> GROUP BY groups the remaining rows by student
+        <br><strong>Step 3:</strong> HAVING only keeps groups where the sum is &ge; 500
+        <br><strong>Step 4:</strong> ORDER BY sorts the result
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ======== QUESTION 4 ======== -->
@@ -612,6 +684,106 @@ li { margin-bottom: 8px; line-height: 1.8; }
         <br>2. Using WHERE instead of HAVING for the AVG filter
         <br>3. Forgetting ROUND → wrong decimal places
         <br>4. Forgetting GROUP BY → aggregates won't work per property
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Deep Dive</span> — JOIN Types: When to Use Which</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <h4>Why JOINs Exist</h4>
+      <p>Property NAME is in one table. Cash flow AMOUNT is in another. To get "Cozy Cottage had a cash flow of 3762", you need to <strong>connect rows from two tables</strong> based on a matching condition. That's what JOIN does.</p>
+
+      <h4>How JOIN Works Internally</h4>
+      <div class="data-flow">
+        <div class="data-flow-title">Step-by-step JOIN execution</div>
+        <p><strong>Step 1:</strong> SQL takes every row from <code>properties</code></p>
+        <p><strong>Step 2:</strong> For each property, SQL looks in <code>cash_flows</code> for rows where <code>property_id</code> matches <code>p.id</code></p>
+        <p><strong>Step 3:</strong> Every match creates a combined output row:</p>
+        <table>
+          <tr><th>p.name</th><th>c.amount</th><th>How it matched</th></tr>
+          <tr><td>Cozy Cottage</td><td>3762</td><td>p.id=1 matched c.property_id=1</td></tr>
+          <tr><td>Cozy Cottage</td><td>4513</td><td>p.id=1 matched c.property_id=1 (2nd cash flow)</td></tr>
+          <tr><td>Sunset Villa</td><td>2318</td><td>p.id=2 matched c.property_id=2</td></tr>
+          <tr><td>Harmony Haven</td><td>1065</td><td>p.id=3 matched c.property_id=3</td></tr>
+        </table>
+        <p>Cozy Cottage appears TWICE because it has two cash flows. JOIN creates one row for every matching combination.</p>
+      </div>
+
+      <h4>ON vs WHERE for Join Condition</h4>
+      <table>
+        <tr><th>Method</th><th>Syntax</th><th>Verdict</th></tr>
+        <tr><td>Using ON (correct)</td><td><code>JOIN cash_flows c ON p.id = c.property_id</code></td><td style="color:var(--green);">Standard, always use this</td></tr>
+        <tr><td>Using WHERE (works)</td><td><code>JOIN cash_flows c WHERE p.id = c.property_id</code></td><td style="color:var(--orange);">Works for INNER JOIN only, avoid</td></tr>
+      </table>
+      <p><strong>ON</strong> says "this is HOW the tables connect." <strong>WHERE</strong> says "this is a filter." Mixing them is confusing. And for LEFT/RIGHT JOINs, they behave differently.</p>
+
+      <h4>The 4 Types of JOINs</h4>
+      <p>Imagine a 4th property <strong>Mountain Lodge</strong> with NO cash flows, and a cash_flow record with <code>property_id=99</code> that doesn't match any property:</p>
+
+      <div class="data-flow">
+        <div class="data-flow-title">INNER JOIN (or just JOIN)</div>
+        <p><strong>Rule:</strong> Only rows that have a match in BOTH tables.</p>
+        <table>
+          <tr><th>name</th><th>amount</th></tr>
+          <tr><td>Cozy Cottage</td><td>3762</td></tr>
+          <tr><td>Sunset Villa</td><td>2318</td></tr>
+          <tr><td>Harmony Haven</td><td>1065</td></tr>
+        </table>
+        <p style="color:var(--red);">Mountain Lodge (no cash flows) &rarr; EXCLUDED. property_id=99 (no property) &rarr; EXCLUDED.</p>
+        <p><strong>When to use:</strong> When you ONLY want data that exists in both tables. "Show me properties that HAVE cash flows." <strong>This is the most common JOIN.</strong></p>
+      </div>
+
+      <div class="data-flow">
+        <div class="data-flow-title">LEFT JOIN</div>
+        <p><strong>Rule:</strong> ALL rows from the LEFT table, even if no match. Missing values become NULL.</p>
+        <table>
+          <tr><th>name</th><th>amount</th></tr>
+          <tr><td>Cozy Cottage</td><td>3762</td></tr>
+          <tr><td>Sunset Villa</td><td>2318</td></tr>
+          <tr><td>Harmony Haven</td><td>1065</td></tr>
+          <tr><td style="color:var(--yellow);">Mountain Lodge</td><td style="color:var(--text-dim);">NULL</td></tr>
+        </table>
+        <p><strong>When to use:</strong> When you want ALL records from the main table, even those without matches. "Show ALL properties, even ones with no cash flows."</p>
+      </div>
+
+      <div class="data-flow">
+        <div class="data-flow-title">RIGHT JOIN</div>
+        <p><strong>Rule:</strong> ALL rows from the RIGHT table, even if no match in left.</p>
+        <table>
+          <tr><th>name</th><th>amount</th></tr>
+          <tr><td>Cozy Cottage</td><td>3762</td></tr>
+          <tr><td>Sunset Villa</td><td>2318</td></tr>
+          <tr><td>Harmony Haven</td><td>1065</td></tr>
+          <tr><td style="color:var(--text-dim);">NULL</td><td style="color:var(--yellow);">9999</td></tr>
+        </table>
+        <p><strong>When to use:</strong> Rarely. Most people swap the table order and use LEFT JOIN instead. Same result.</p>
+      </div>
+
+      <div class="data-flow">
+        <div class="data-flow-title">FULL OUTER JOIN</div>
+        <p><strong>Rule:</strong> ALL rows from BOTH tables. NULL where no match.</p>
+        <table>
+          <tr><th>name</th><th>amount</th></tr>
+          <tr><td>Cozy Cottage</td><td>3762</td></tr>
+          <tr><td>Sunset Villa</td><td>2318</td></tr>
+          <tr><td>Harmony Haven</td><td>1065</td></tr>
+          <tr><td style="color:var(--yellow);">Mountain Lodge</td><td style="color:var(--text-dim);">NULL</td></tr>
+          <tr><td style="color:var(--text-dim);">NULL</td><td style="color:var(--yellow);">9999</td></tr>
+        </table>
+        <p><strong>When to use:</strong> When you want EVERYTHING. Very rare. MySQL doesn't support it directly.</p>
+      </div>
+
+      <div class="key-point">
+        <strong>Quick decision guide for HackerRank:</strong>
+        <br>1. Does the question say "show ALL X even without Y"? &rarr; <code>LEFT JOIN</code>
+        <br>2. Does the question only want matched data? &rarr; <code>INNER JOIN</code> (just <code>JOIN</code>)
+        <br>3. 99% of HackerRank questions use INNER JOIN.
+        <br><br>
+        <strong>Why all 3 SQL questions in the exam use INNER JOIN:</strong> They only ask for properties/tasks/students that HAVE related data. No question asks "show properties even if they have no cash flows."
       </div>
     </div>
   </div>
@@ -1244,6 +1416,496 @@ li { margin-bottom: 8px; line-height: 1.8; }
       </table>
       <div class="key-point">
         <strong>Memory trick:</strong> In Gson, everything goes through <code>.get("key")</code> first (returns a JsonElement), then you convert with <code>.getAsXxx()</code>. In org.json, you call <code>.getXxx("key")</code> directly. Gson is two steps, org.json is one step.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 9 ======== -->
+<div class="question" data-q="8">
+  <div class="tag-row">
+    <span class="tag tag-java">Java — PriorityQueue + Greedy</span>
+    <span class="tag tag-difficulty">Medium</span>
+  </div>
+  <h2>Q9: Merge Magic — Minimum Power</h2>
+
+  <div class="q-statement">
+    You are given an array <code>cells</code> of integers. Repeatedly merge any two cells into one (new value = x + y, power used = x + y) until one remains.
+    <br><br>Find the <strong>minimum total power</strong> needed.
+    <br><br>
+    <strong>Example:</strong> cells = [20, 30, 40]
+    <br>&bull; Merge 20+30=50, power=50. Now [50, 40]
+    <br>&bull; Merge 50+40=90, power=90. Now [90]
+    <br>&bull; Total = 50+90 = <strong>140</strong>
+    <br><br>
+    <strong>Sample Input 0:</strong> [30, 10, 20] &rarr; <strong>Output: 90</strong>
+    <br><strong>Sample Input 1:</strong> [100, 1] &rarr; <strong>Output: 101</strong>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> You have numbers. Keep picking any two, add them (that costs energy), and put the sum back. Repeat until one number remains. Find the CHEAPEST way to do it.</p>
+      <p><strong>Why order matters:</strong> With [30, 10, 20]:</p>
+      <ul>
+        <li>Merge 30+10 first: cost 40, then 40+20=60. Total = <strong>100</strong></li>
+        <li>Merge 10+20 first: cost 30, then 30+30=60. Total = <strong>90</strong> &larr; cheaper!</li>
+        <li>Merge 30+20 first: cost 50, then 50+10=60. Total = <strong>110</strong></li>
+      </ul>
+      <p><strong>The key insight:</strong> Always merging the TWO SMALLEST numbers first gives the minimum cost. Why? Big numbers that merge early get "re-added" in every future merge. Keep the big numbers for last.</p>
+      <p><strong>This is the Huffman Coding algorithm</strong> — a famous "greedy" approach. Greedy means: at each step, make the locally best choice (smallest two), and it guarantees the globally best answer.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — What data structure do we need?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>We need to repeatedly:</strong> find the two smallest &rarr; remove them &rarr; add their sum back.</p>
+      <p><strong>Without PriorityQueue:</strong> Sort the array after every merge &rarr; O(n log n) each time. For n merges, that's O(n&sup2; log n). Slow.</p>
+      <p><strong>With PriorityQueue (Min-Heap):</strong></p>
+      <ul>
+        <li><code>poll()</code> — removes and returns the SMALLEST element &rarr; O(log n)</li>
+        <li><code>add()</code> — inserts a new element in the right position &rarr; O(log n)</li>
+      </ul>
+      <p>So each merge operation is O(log n). For n-1 merges total: O(n log n). Much faster.</p>
+
+      <div class="analogy">
+        Think of PriorityQueue as a <strong>magic bag</strong>. You throw numbers in, and every time you reach in, it always gives you the <strong>smallest</strong> one first. You don't need to sort — it maintains order automatically.
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Step-by-step approach</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step"><div class="step-num">1</div><div class="step-content"><p>Create a PriorityQueue (min-heap) and load all numbers into it</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><p>While more than 1 element: pull out two smallest, add them, add cost to total, put sum back</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-content"><p>Return total cost</p></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution with word-by-word breakdown</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">public static int</span> <span class="fn">minPower</span>(<span class="type">List</span>&lt;<span class="type">Integer</span>&gt; cells) {
+
+    <span class="cm">// Create a min-heap. By default, PriorityQueue keeps smallest on top.</span>
+    <span class="type">PriorityQueue</span>&lt;<span class="type">Integer</span>&gt; p = <span class="kw">new</span> <span class="type">PriorityQueue</span>&lt;&gt;();
+
+    <span class="cm">// Load all numbers into the heap</span>
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; cells.size(); i++) {
+        p.add(cells.get(i));
+    }
+
+    <span class="kw">int</span> total = <span class="num">0</span>;  <span class="cm">// running total of all merge costs</span>
+
+    <span class="cm">// Keep merging while more than 1 element remains</span>
+    <span class="kw">while</span> (p.size() > <span class="num">1</span>) {
+        <span class="kw">int</span> first = p.poll();   <span class="cm">// removes &amp; returns the SMALLEST</span>
+        <span class="kw">int</span> second = p.poll();  <span class="cm">// removes &amp; returns the NEXT smallest</span>
+        <span class="kw">int</span> sum = first + second;
+        total += sum;           <span class="cm">// add merge cost to running total</span>
+        p.add(sum);             <span class="cm">// put merged value BACK into the heap</span>
+    }
+
+    <span class="kw">return</span> total;
+}</pre>
+
+      <h4>Word-by-word: What each line means</h4>
+      <table>
+        <tr><th>Code</th><th>What it does</th><th>Why</th></tr>
+        <tr><td><code>PriorityQueue&lt;Integer&gt; p = new PriorityQueue&lt;&gt;();</code></td><td>Creates an empty min-heap that stores integers</td><td>We need to always find the two smallest numbers efficiently</td></tr>
+        <tr><td><code>p.add(cells.get(i));</code></td><td><code>cells.get(i)</code> reads from the list, <code>p.add()</code> inserts into the heap</td><td>Load all input numbers into the heap</td></tr>
+        <tr><td><code>while (p.size() > 1)</code></td><td>Keep looping until only 1 element remains</td><td>We merge two into one each time — stop when nothing left to merge</td></tr>
+        <tr><td><code>p.poll()</code></td><td>Removes and returns the smallest element</td><td>Calling it twice gives us the two smallest numbers</td></tr>
+        <tr><td><code>total += sum;</code></td><td>Same as <code>total = total + sum</code></td><td>Track cumulative cost of all merges</td></tr>
+        <tr><td><code>p.add(sum);</code></td><td>Puts the merged value back into the heap</td><td>The merged cell still participates in future merges</td></tr>
+      </table>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Trace with [30, 10, 20]</div>
+        <p><strong>Heap after loading:</strong> [10, 30, 20] (10 on top — smallest)</p>
+        <table>
+          <tr><th>Step</th><th>poll()</th><th>poll()</th><th>sum</th><th>total</th><th>Heap after</th></tr>
+          <tr><td>1</td><td>10</td><td>20</td><td>30</td><td>30</td><td>[30, 30]</td></tr>
+          <tr><td>2</td><td>30</td><td>30</td><td>60</td><td>90</td><td>[60]</td></tr>
+        </table>
+        <p>Size = 1, stop. <strong>Answer: 90</strong> &check;</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Pattern + imports</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="key-point">
+        <strong>Whenever you see "repeatedly pick two, combine, minimize total cost":</strong>
+        <br>1. Use <code>PriorityQueue</code> (min-heap)
+        <br>2. Always pick the two smallest first (greedy)
+        <br>3. Put the result back and repeat
+        <br><br>
+        This is the <strong>Huffman Coding / Optimal Merge</strong> pattern. Works for merging files, ropes, anything.
+      </div>
+      <div class="warning">
+        <strong>Don't forget the import:</strong>
+        <br><code>import java.util.PriorityQueue;</code>
+        <br><br>Without this import, the code won't compile. HackerRank sometimes has it pre-imported, sometimes not — check.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 10 ======== -->
+<div class="question" data-q="9">
+  <div class="tag-row">
+    <span class="tag tag-java">Java — Strings + StringBuilder</span>
+    <span class="tag tag-difficulty">Easy</span>
+  </div>
+  <h2>Q10: Password Creation — Merge Two Strings</h2>
+
+  <div class="q-statement">
+    Build a new password by <strong>alternating characters</strong> from two strings. Start with the first character of <code>a</code>, then first of <code>b</code>, then second of <code>a</code>, then second of <code>b</code>...
+    If one string runs out, append the remaining characters from the other.
+    <br><br>
+    <strong>Example 1:</strong> a = "abc", b = "def" &rarr; <strong>"adbecf"</strong>
+    <br><strong>Example 2:</strong> a = "hackerrank", b = "mountain" &rarr; <strong>"hmaocuknetrariannk"</strong>
+    <br><br>
+    <strong>Constraint:</strong> Lengths up to 25,000. All lowercase a-z.
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> Interleave two strings like shuffling two decks of cards. Take one from the left pile, one from the right pile, repeat. If one pile runs out, just keep going with the other.</p>
+      <p><strong>This is a "zipper merge" pattern</strong> — walk through both strings at the same time using the same index.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Why StringBuilder, not String?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p>In Java, <code>String</code> is <strong>immutable</strong> — it can NEVER be changed after creation. Every time you do <code>str + "x"</code>, Java creates a <strong>brand new String object</strong> in memory. If you're adding 25,000 characters one by one, that means 25,000 new objects &rarr; extremely slow.</p>
+
+      <p><code>StringBuilder</code> is <strong>mutable</strong> — it modifies itself in place. One object, keeps growing. Much faster.</p>
+
+      <table>
+        <tr><th>Feature</th><th>String</th><th>StringBuilder</th></tr>
+        <tr><td>Mutable?</td><td style="color:var(--red);">No — creates new object each time</td><td style="color:var(--green);">Yes — modifies in place</td></tr>
+        <tr><td>Speed for loops</td><td style="color:var(--red);">Slow (O(n&sup2;) for n concatenations)</td><td style="color:var(--green);">Fast (O(n) for n appends)</td></tr>
+        <tr><td>When to use</td><td>Small, fixed strings</td><td>Building strings in loops</td></tr>
+      </table>
+
+      <div class="key-point">
+        <strong>Rule:</strong> If you're building a string inside a loop (character by character), <strong>always use StringBuilder</strong>. Never use <code>String += </code> in a loop.
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Step-by-step approach</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step"><div class="step-num">1</div><div class="step-content"><p>Create an empty StringBuilder</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><p>Find the length of the longer string (<code>Math.max</code>)</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-content"><p>Loop from 0 to max length. Each iteration: if <code>a</code> still has characters, append from <code>a</code>. Then if <code>b</code> still has characters, append from <code>b</code>.</p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-content"><p>Convert StringBuilder back to String with <code>.toString()</code></p></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution with word-by-word breakdown</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">public static</span> <span class="type">String</span> <span class="fn">newPassword</span>(<span class="type">String</span> a, <span class="type">String</span> b) {
+
+    <span class="cm">// Mutable string builder — efficient for character-by-character building</span>
+    <span class="type">StringBuilder</span> result = <span class="kw">new</span> <span class="type">StringBuilder</span>();
+
+    <span class="cm">// Loop for as long as the LONGER string</span>
+    <span class="kw">int</span> max = <span class="type">Math</span>.max(a.length(), b.length());
+
+    <span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">0</span>; i &lt; max; i++) {
+
+        <span class="cm">// Only add from a if we haven't passed its end</span>
+        <span class="kw">if</span> (i &lt; a.length()) {
+            result.append(a.charAt(i));
+        }
+
+        <span class="cm">// Only add from b if we haven't passed its end</span>
+        <span class="kw">if</span> (i &lt; b.length()) {
+            result.append(b.charAt(i));
+        }
+    }
+
+    <span class="cm">// Convert back to String (because return type is String)</span>
+    <span class="kw">return</span> result.toString();
+}</pre>
+
+      <h4>Word-by-word: What each line means</h4>
+      <table>
+        <tr><th>Code</th><th>What it does</th><th>Why</th></tr>
+        <tr><td><code>new StringBuilder()</code></td><td>Creates an empty mutable string</td><td>We're building a string in a loop — must use StringBuilder for speed</td></tr>
+        <tr><td><code>Math.max(a.length(), b.length())</code></td><td>Returns the larger of two numbers</td><td>Need to loop as long as the longer string (shorter one will run out early)</td></tr>
+        <tr><td><code>if (i &lt; a.length())</code></td><td>Safety check: is index still within string a?</td><td>Prevents IndexOutOfBoundsException when a is shorter than b</td></tr>
+        <tr><td><code>a.charAt(i)</code></td><td>Gets the character at position i</td><td>Accessing individual characters by index</td></tr>
+        <tr><td><code>result.append(...)</code></td><td>Adds the character to the end of StringBuilder</td><td>Builds up the result one character at a time</td></tr>
+        <tr><td><code>result.toString()</code></td><td>Converts StringBuilder &rarr; String</td><td>Method must return a String, not a StringBuilder</td></tr>
+      </table>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Trace with a = "abc", b = "def"</div>
+        <table>
+          <tr><th>i</th><th>From a</th><th>From b</th><th>result so far</th></tr>
+          <tr><td>0</td><td>'a'</td><td>'d'</td><td>"ad"</td></tr>
+          <tr><td>1</td><td>'b'</td><td>'e'</td><td>"adbe"</td></tr>
+          <tr><td>2</td><td>'c'</td><td>'f'</td><td>"adbecf"</td></tr>
+        </table>
+        <p><strong>Answer: "adbecf"</strong> &check;</p>
+      </div>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Trace with unequal lengths: a = "abcde" (5), b = "xy" (2)</div>
+        <table>
+          <tr><th>i</th><th>From a</th><th>From b</th><th>result so far</th></tr>
+          <tr><td>0</td><td>'a'</td><td>'x'</td><td>"ax"</td></tr>
+          <tr><td>1</td><td>'b'</td><td>'y'</td><td>"axby"</td></tr>
+          <tr><td>2</td><td>'c'</td><td style="color:var(--text-dim);">— (b ended)</td><td>"axbyc"</td></tr>
+          <tr><td>3</td><td>'d'</td><td style="color:var(--text-dim);">—</td><td>"axbycd"</td></tr>
+          <tr><td>4</td><td>'e'</td><td style="color:var(--text-dim);">—</td><td>"axbycde"</td></tr>
+        </table>
+        <p>When one string runs out, the <code>if</code> check prevents the crash and only the other string contributes.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Pattern</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="key-point">
+        <strong>Zipper Merge pattern — use whenever you need to interleave two sequences:</strong>
+        <br>1. Create a <code>StringBuilder</code>
+        <br>2. Loop to <code>Math.max(a.length(), b.length())</code>
+        <br>3. Add from each with bounds check: <code>if (i &lt; x.length())</code>
+        <br>4. Return <code>.toString()</code>
+        <br><br>
+        Works for: merging two strings, two arrays, two lists — any interleaving problem.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== QUESTION 11 ======== -->
+<div class="question" data-q="10">
+  <div class="tag-row">
+    <span class="tag tag-api">REST API — HTTP + JSON</span>
+    <span class="tag tag-difficulty">Easy-Medium</span>
+  </div>
+  <h2>Q11: Country Codes — Format Phone Number</h2>
+
+  <div class="q-statement">
+    Given a country name and a phone number, query the API at:
+    <br><code>https://jsonmock.hackerrank.com/api/countries?name=&lt;country&gt;</code>
+    <br><br>
+    &bull; If the country is found, get its calling codes. Use the <strong>last</strong> calling code (highest index).
+    <br>&bull; Format: <code>+&lt;code&gt; &lt;phoneNumber&gt;</code> (e.g., <code>+93 656445445</code>)
+    <br>&bull; If country not found (empty data array), return <code>"-1"</code>
+    <br><br>
+    <strong>Sample 1:</strong> country = "Afghanistan", phone = "656445445" &rarr; <strong>+93 656445445</strong>
+    <br><strong>Sample 2:</strong> country = "Puerto Rico", phone = "564593986" &rarr; <strong>+1939 564593986</strong>
+    <br>(Puerto Rico has callingCodes = ["1787", "1939"] — use last one)
+    <br><strong>Sample 3:</strong> country = "Oceania", phone = "987574876" &rarr; <strong>-1</strong> (not found)
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Explain</span> — What is this question actually asking?</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>In simple words:</strong> Call an API to look up a country. If it exists, get its phone calling code and format a phone number. If it doesn't exist, return "-1".</p>
+      <p><strong>This is the SIMPLEST REST API question</strong> — no pagination needed. One API call, check if data exists, extract a field, format a string.</p>
+      <p><strong>The trick:</strong> A country can have MULTIPLE calling codes (like Puerto Rico with "1787" and "1939"). The question says "use the one at the highest index" — that means the LAST element in the array.</p>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 1</span> — Analyze</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p><strong>Type:</strong> Single API call + JSON parsing + string formatting</p>
+      <p><strong>No pagination</strong> — the response has exactly 0 or 1 records. No <code>while(page &lt;= totalPages)</code> needed.</p>
+      <p><strong>Key checks:</strong></p>
+      <ol>
+        <li>Is the data array empty? &rarr; return "-1"</li>
+        <li>Get callingCodes array &rarr; pick the LAST element</li>
+        <li>Format as "+" + code + " " + phoneNumber</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 2</span> — Step-by-step approach</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="step"><div class="step-num">1</div><div class="step-content"><p>Build the URL with the country name (replace spaces with <code>%20</code>)</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-content"><p>Make the HTTP GET request, read the response</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-content"><p>Parse JSON, check if <code>data</code> array is empty &rarr; return "-1"</p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-content"><p>Get the first (and only) object from data. Extract <code>callingCodes</code> array.</p></div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-content"><p>Pick the LAST element: <code>callingCodes[length - 1]</code></p></div></div>
+      <div class="step"><div class="step-num">6</div><div class="step-content"><p>Format and return: <code>"+" + code + " " + phoneNumber</code></p></div></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 3</span> — Complete solution (Gson version for HackerRank)</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">import</span> java.io.*;
+<span class="kw">import</span> java.net.*;
+<span class="kw">import</span> com.google.gson.*;
+
+<span class="kw">class</span> <span class="type">Result</span> {
+    <span class="kw">public static</span> <span class="type">String</span> <span class="fn">getPhoneNumbers</span>(<span class="type">String</span> country, <span class="type">String</span> phoneNumber) {
+        <span class="kw">try</span> {
+            <span class="cm">// 1. Build URL — replace spaces with %20 for URL encoding</span>
+            <span class="type">String</span> urlString =
+                <span class="str">"https://jsonmock.hackerrank.com/api/countries?name="</span>
+                + country.replace(<span class="str">" "</span>, <span class="str">"%20"</span>);
+
+            <span class="cm">// 2. Make HTTP GET request</span>
+            <span class="type">URL</span> url = <span class="kw">new</span> <span class="type">URL</span>(urlString);
+            <span class="type">HttpURLConnection</span> conn = (<span class="type">HttpURLConnection</span>) url.openConnection();
+            conn.setRequestMethod(<span class="str">"GET"</span>);
+
+            <span class="cm">// 3. Read the response</span>
+            <span class="type">BufferedReader</span> br = <span class="kw">new</span> <span class="type">BufferedReader</span>(
+                <span class="kw">new</span> <span class="type">InputStreamReader</span>(conn.getInputStream()));
+            <span class="type">StringBuilder</span> sb = <span class="kw">new</span> <span class="type">StringBuilder</span>();
+            <span class="type">String</span> line;
+            <span class="kw">while</span> ((line = br.readLine()) != <span class="kw">null</span>) { sb.append(line); }
+            br.close();
+
+            <span class="cm">// 4. Parse JSON</span>
+            <span class="type">JsonObject</span> response = <span class="type">JsonParser</span>.parseString(sb.toString())
+                .getAsJsonObject();
+            <span class="type">JsonArray</span> data = response.getAsJsonArray(<span class="str">"data"</span>);
+
+            <span class="cm">// 5. If data is empty → country not found</span>
+            <span class="kw">if</span> (data.size() == <span class="num">0</span>) {
+                <span class="kw">return</span> <span class="str">"-1"</span>;
+            }
+
+            <span class="cm">// 6. Get the country object (first and only element)</span>
+            <span class="type">JsonObject</span> countryObj = data.get(<span class="num">0</span>).getAsJsonObject();
+            <span class="type">JsonArray</span> callingCodes = countryObj.getAsJsonArray(<span class="str">"callingCodes"</span>);
+
+            <span class="cm">// 7. Pick the LAST calling code (highest index)</span>
+            <span class="type">String</span> code = callingCodes
+                .get(callingCodes.size() - <span class="num">1</span>).getAsString();
+
+            <span class="cm">// 8. Format and return</span>
+            <span class="kw">return</span> <span class="str">"+"</span> + code + <span class="str">" "</span> + phoneNumber;
+
+        } <span class="kw">catch</span> (<span class="type">Exception</span> e) {
+            <span class="kw">return</span> <span class="str">"-1"</span>;
+        }
+    }
+}
+
+<span class="kw">public class</span> <span class="type">Solution</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) <span class="kw">throws</span> <span class="type">IOException</span> {
+        <span class="type">BufferedReader</span> bufferedReader = <span class="kw">new</span> <span class="type">BufferedReader</span>(
+            <span class="kw">new</span> <span class="type">InputStreamReader</span>(<span class="type">System</span>.in));
+        <span class="type">BufferedWriter</span> bufferedWriter = <span class="kw">new</span> <span class="type">BufferedWriter</span>(
+            <span class="kw">new</span> <span class="type">FileWriter</span>(<span class="type">System</span>.getenv(<span class="str">"OUTPUT_PATH"</span>)));
+
+        <span class="type">String</span> country = bufferedReader.readLine();
+        <span class="type">String</span> phoneNumber = bufferedReader.readLine();
+        <span class="type">String</span> result = <span class="type">Result</span>.getPhoneNumbers(country, phoneNumber);
+
+        bufferedWriter.write(result);
+        bufferedWriter.newLine();
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}</pre>
+
+      <h4>Word-by-word breakdown of key parts</h4>
+      <table>
+        <tr><th>Code</th><th>What it does</th><th>Why</th></tr>
+        <tr><td><code>country.replace(" ", "%20")</code></td><td>Replaces spaces with %20</td><td>URLs can't have spaces. %20 is the URL encoding for space. "Puerto Rico" &rarr; "Puerto%20Rico"</td></tr>
+        <tr><td><code>url.openConnection()</code></td><td>Opens a connection (doesn't send yet)</td><td>Prepares the request — the actual HTTP call happens when you read the stream</td></tr>
+        <tr><td><code>(HttpURLConnection)</code></td><td>Cast to HttpURLConnection</td><td><code>openConnection()</code> returns generic URLConnection. We need HTTP-specific methods like setRequestMethod</td></tr>
+        <tr><td><code>conn.getInputStream()</code></td><td>Sends the request and gets the response bytes</td><td>THIS is when the actual HTTP call fires</td></tr>
+        <tr><td><code>data.size() == 0</code></td><td>Check if the data array is empty</td><td>Empty = country not found. Return "-1"</td></tr>
+        <tr><td><code>data.get(0).getAsJsonObject()</code></td><td>Get first element as a JSON object</td><td>data always has 0 or 1 elements. If we're here, it has 1.</td></tr>
+        <tr><td><code>callingCodes.size() - 1</code></td><td>Index of the LAST element</td><td>Arrays are 0-indexed. Last element = length - 1. For ["1787","1939"], size=2, index=1 &rarr; "1939"</td></tr>
+      </table>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Trace with country = "Puerto Rico"</div>
+        <table>
+          <tr><th>Step</th><th>What happens</th><th>Value</th></tr>
+          <tr><td>1</td><td>URL built</td><td>.../countries?name=Puerto%20Rico</td></tr>
+          <tr><td>2</td><td>API response parsed</td><td>data = [{ name: "Puerto Rico", callingCodes: ["1787", "1939"], ... }]</td></tr>
+          <tr><td>3</td><td>data.size()</td><td>1 (not empty &rarr; continue)</td></tr>
+          <tr><td>4</td><td>callingCodes</td><td>["1787", "1939"]</td></tr>
+          <tr><td>5</td><td>callingCodes.size() - 1</td><td>2 - 1 = 1 &rarr; "1939"</td></tr>
+          <tr><td>6</td><td>Format</td><td>"+" + "1939" + " " + "564593986" = <strong>"+1939 564593986"</strong></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Pattern: No-Pagination API</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="key-point">
+        <strong>Not all REST API questions have pagination!</strong>
+        <br><br>If the API returns 0 or 1 records (like this one), you don't need the <code>while(page &lt;= totalPages)</code> loop. Just:
+        <br>1. Make ONE API call
+        <br>2. Check if data is empty &rarr; handle the "not found" case
+        <br>3. Extract what you need from data[0]
+        <br>4. Format and return
+        <br><br>
+        <strong>How to know:</strong> Read the problem carefully. If it mentions "paginated" or "total_pages", you need the loop. If it says "data contains 0 or 1 records", you don't.
       </div>
     </div>
   </div>
