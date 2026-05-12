@@ -934,13 +934,120 @@ li { margin-bottom: 8px; line-height: 1.8; }
       <span class="arrow">&#9654;</span>
     </div>
     <div class="phase-body">
-      <p>Full solution is on the <a href="index.html#rest" style="color:var(--accent);">concepts page under REST API → Solving the Energy Bar Question</a>. The key logic inside the loop:</p>
-<pre><span class="cm">// Compare: highest energy wins. If tie, lowest price wins.</span>
-<span class="kw">if</span> (energy > maxEnergy || (energy == maxEnergy && avgPrice < minPrice)) {
-    maxEnergy = energy;
-    minPrice = avgPrice;
-    bestBrand = brand;
-    bestType = type;
+      <p>Full Java solution using <strong>Gson + HttpClient</strong> (what HackerRank actually uses):</p>
+<pre><span class="kw">public static</span> <span class="type">String</span> <span class="fn">energyBar</span>(<span class="type">String</span> country) <span class="kw">throws</span> Exception {
+    <span class="type">int</span> page = <span class="num">1</span>, totalPages = <span class="num">1</span>;
+    <span class="type">int</span> maxEnergy = -<span class="num">1</span>, minAvgPrice = Integer.MAX_VALUE;
+    <span class="type">String</span> result = <span class="str">""</span>;
+
+    <span class="kw">while</span> (page <= totalPages) {
+        <span class="type">String</span> url = <span class="str">"https://jsonmock.hackerrank.com/api/chocolates?countryOfOrigin="</span>
+                     + country + <span class="str">"&amp;page="</span> + page;
+
+        <span class="cm">// HttpClient — 3-line HTTP call</span>
+        <span class="type">String</span> json = HttpClient.<span class="fn">newHttpClient</span>()
+            .<span class="fn">send</span>(HttpRequest.<span class="fn">newBuilder</span>().<span class="fn">uri</span>(URI.<span class="fn">create</span>(url)).<span class="fn">build</span>(),
+                  HttpResponse.BodyHandlers.<span class="fn">ofString</span>()).<span class="fn">body</span>();
+
+        JsonObject resp = JsonParser.<span class="fn">parseString</span>(json).<span class="fn">getAsJsonObject</span>();
+        totalPages = resp.<span class="fn">get</span>(<span class="str">"total_pages"</span>).<span class="fn">getAsInt</span>();
+        JsonArray data = resp.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);
+
+        <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i < data.<span class="fn">size</span>(); i++) {
+            JsonObject choco = data.<span class="fn">get</span>(i).<span class="fn">getAsJsonObject</span>();
+            <span class="type">int</span> kcal = choco.<span class="fn">getAsJsonObject</span>(<span class="str">"nutritionalInformation"</span>).<span class="fn">get</span>(<span class="str">"kcal"</span>).<span class="fn">getAsInt</span>();
+
+            <span class="cm">// Average weight (integer division = floor)</span>
+            JsonArray weights = choco.<span class="fn">getAsJsonArray</span>(<span class="str">"weights"</span>);
+            <span class="type">int</span> sumW = <span class="num">0</span>;
+            <span class="kw">for</span> (<span class="type">int</span> j = <span class="num">0</span>; j < weights.<span class="fn">size</span>(); j++) sumW += weights.<span class="fn">get</span>(j).<span class="fn">getAsInt</span>();
+            <span class="type">int</span> avgWeight = sumW / weights.<span class="fn">size</span>();
+
+            <span class="cm">// Energy per gram</span>
+            <span class="type">int</span> energy = (<span class="type">int</span>)(kcal * <span class="num">0.01</span> * avgWeight);
+
+            <span class="cm">// Average price (for tiebreaker)</span>
+            JsonArray prices = choco.<span class="fn">getAsJsonArray</span>(<span class="str">"prices"</span>);
+            <span class="type">int</span> sumP = <span class="num">0</span>;
+            <span class="kw">for</span> (<span class="type">int</span> j = <span class="num">0</span>; j < prices.<span class="fn">size</span>(); j++) sumP += prices.<span class="fn">get</span>(j).<span class="fn">getAsInt</span>();
+            <span class="type">int</span> avgPrice = sumP / prices.<span class="fn">size</span>();
+
+            <span class="cm">// Compare: highest energy wins. If tie, lowest price wins.</span>
+            <span class="kw">if</span> (energy > maxEnergy || (energy == maxEnergy && avgPrice < minAvgPrice)) {
+                maxEnergy = energy;
+                minAvgPrice = avgPrice;
+                result = choco.<span class="fn">get</span>(<span class="str">"brand"</span>).<span class="fn">getAsString</span>() + <span class="str">":"</span> + choco.<span class="fn">get</span>(<span class="str">"type"</span>).<span class="fn">getAsString</span>();
+            }
+        }
+        page++;
+    }
+    <span class="kw">return</span> result;
+}</pre>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Alt</span> — Same solution using BufferedReader (URL + HttpURLConnection)</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <div class="key-point">
+        <strong>Two ways to make HTTP calls in Java:</strong><br>
+        <strong>HttpClient</strong> (modern, 3 lines) — <code>HttpClient.newHttpClient().send(...).body()</code><br>
+        <strong>BufferedReader</strong> (old school, 7 lines) — <code>URL → openConnection → BufferedReader → loop → StringBuilder</code><br>
+        Both work on HackerRank. HttpClient is shorter, BufferedReader is what most tutorials show.
+      </div>
+<pre><span class="kw">public static</span> <span class="type">String</span> <span class="fn">energyBar</span>(<span class="type">String</span> country) <span class="kw">throws</span> Exception {
+    <span class="type">int</span> page = <span class="num">1</span>, totalPages = <span class="num">1</span>;
+    <span class="type">int</span> maxEnergy = -<span class="num">1</span>, minAvgPrice = Integer.MAX_VALUE;
+    <span class="type">String</span> result = <span class="str">""</span>;
+
+    <span class="kw">while</span> (page <= totalPages) {
+        <span class="type">String</span> urlStr = <span class="str">"https://jsonmock.hackerrank.com/api/chocolates?countryOfOrigin="</span>
+                     + country + <span class="str">"&amp;page="</span> + page;
+
+        <span class="cm">// BufferedReader — URL + connection + read line by line</span>
+        URL url = <span class="kw">new</span> URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.<span class="fn">openConnection</span>();
+        conn.<span class="fn">setRequestMethod</span>(<span class="str">"GET"</span>);
+        BufferedReader br = <span class="kw">new</span> BufferedReader(
+            <span class="kw">new</span> InputStreamReader(conn.<span class="fn">getInputStream</span>()));
+        StringBuilder sb = <span class="kw">new</span> StringBuilder();
+        <span class="type">String</span> line;
+        <span class="kw">while</span> ((line = br.<span class="fn">readLine</span>()) != <span class="kw">null</span>) sb.<span class="fn">append</span>(line);
+        br.<span class="fn">close</span>();
+        <span class="type">String</span> json = sb.<span class="fn">toString</span>();
+
+        JsonObject resp = JsonParser.<span class="fn">parseString</span>(json).<span class="fn">getAsJsonObject</span>();
+        totalPages = resp.<span class="fn">get</span>(<span class="str">"total_pages"</span>).<span class="fn">getAsInt</span>();
+        JsonArray data = resp.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);
+
+        <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i < data.<span class="fn">size</span>(); i++) {
+            JsonObject choco = data.<span class="fn">get</span>(i).<span class="fn">getAsJsonObject</span>();
+            <span class="type">int</span> kcal = choco.<span class="fn">getAsJsonObject</span>(<span class="str">"nutritionalInformation"</span>).<span class="fn">get</span>(<span class="str">"kcal"</span>).<span class="fn">getAsInt</span>();
+
+            JsonArray weights = choco.<span class="fn">getAsJsonArray</span>(<span class="str">"weights"</span>);
+            <span class="type">int</span> sumW = <span class="num">0</span>;
+            <span class="kw">for</span> (<span class="type">int</span> j = <span class="num">0</span>; j < weights.<span class="fn">size</span>(); j++) sumW += weights.<span class="fn">get</span>(j).<span class="fn">getAsInt</span>();
+            <span class="type">int</span> avgWeight = sumW / weights.<span class="fn">size</span>();
+
+            <span class="type">int</span> energy = (<span class="type">int</span>)(kcal * <span class="num">0.01</span> * avgWeight);
+
+            JsonArray prices = choco.<span class="fn">getAsJsonArray</span>(<span class="str">"prices"</span>);
+            <span class="type">int</span> sumP = <span class="num">0</span>;
+            <span class="kw">for</span> (<span class="type">int</span> j = <span class="num">0</span>; j < prices.<span class="fn">size</span>(); j++) sumP += prices.<span class="fn">get</span>(j).<span class="fn">getAsInt</span>();
+            <span class="type">int</span> avgPrice = sumP / prices.<span class="fn">size</span>();
+
+            <span class="kw">if</span> (energy > maxEnergy || (energy == maxEnergy && avgPrice < minAvgPrice)) {
+                maxEnergy = energy;
+                minAvgPrice = avgPrice;
+                result = choco.<span class="fn">get</span>(<span class="str">"brand"</span>).<span class="fn">getAsString</span>() + <span class="str">":"</span> + choco.<span class="fn">get</span>(<span class="str">"type"</span>).<span class="fn">getAsString</span>();
+            }
+        }
+        page++;
+    }
+    <span class="kw">return</span> result;
 }</pre>
     </div>
   </div>
@@ -1105,6 +1212,66 @@ li { margin-bottom: 8px; line-height: 1.8; }
         <br><br>
         Steps 1-3 are IDENTICAL. Only 4-6 change. Memorize 1-3 as a template.
       </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Alt</span> — Same solution using BufferedReader (URL + HttpURLConnection)</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">public static</span> <span class="type">String</span> <span class="fn">findBestInCity</span>(<span class="type">String</span> city) <span class="kw">throws</span> Exception {
+    <span class="type">String</span> bestName = <span class="kw">null</span>;
+    <span class="type">int</span> maxStudents = -<span class="num">1</span>;
+    <span class="type">int</span> page = <span class="num">1</span>, totalPages = <span class="num">1</span>;
+
+    <span class="kw">while</span> (page <= totalPages) {
+        <span class="type">String</span> urlStr = <span class="str">"https://jsonmock.hackerrank.com/api/universities?page="</span> + page;
+
+        <span class="cm">// BufferedReader approach</span>
+        URL url = <span class="kw">new</span> URL(urlStr);
+        HttpURLConnection conn = (HttpURLConnection) url.<span class="fn">openConnection</span>();
+        conn.<span class="fn">setRequestMethod</span>(<span class="str">"GET"</span>);
+        BufferedReader br = <span class="kw">new</span> BufferedReader(
+            <span class="kw">new</span> InputStreamReader(conn.<span class="fn">getInputStream</span>()));
+        StringBuilder sb = <span class="kw">new</span> StringBuilder();
+        <span class="type">String</span> line;
+        <span class="kw">while</span> ((line = br.<span class="fn">readLine</span>()) != <span class="kw">null</span>) sb.<span class="fn">append</span>(line);
+        br.<span class="fn">close</span>();
+
+        JsonObject json = JsonParser.<span class="fn">parseString</span>(sb.<span class="fn">toString</span>()).<span class="fn">getAsJsonObject</span>();
+        totalPages = json.<span class="fn">get</span>(<span class="str">"total_pages"</span>).<span class="fn">getAsInt</span>();
+        JsonArray data = json.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);
+
+        <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i < data.<span class="fn">size</span>(); i++) {
+            JsonObject uni = data.<span class="fn">get</span>(i).<span class="fn">getAsJsonObject</span>();
+            <span class="type">String</span> uniCity = uni.<span class="fn">getAsJsonObject</span>(<span class="str">"location"</span>)
+                                .<span class="fn">get</span>(<span class="str">"city"</span>).<span class="fn">getAsString</span>();
+            <span class="kw">if</span> (!uniCity.<span class="fn">equals</span>(city)) <span class="kw">continue</span>;
+
+            <span class="type">String</span> raw = uni.<span class="fn">get</span>(<span class="str">"international_students"</span>).<span class="fn">getAsString</span>();
+            <span class="type">int</span> students = Integer.<span class="fn">parseInt</span>(raw.<span class="fn">replace</span>(<span class="str">","</span>, <span class="str">""</span>));
+
+            <span class="kw">if</span> (students > maxStudents) {
+                maxStudents = students;
+                bestName = uni.<span class="fn">get</span>(<span class="str">"university"</span>).<span class="fn">getAsString</span>();
+            }
+        }
+        page++;
+    }
+    <span class="kw">return</span> bestName;
+}
+
+<span class="kw">public static</span> <span class="type">String</span> <span class="fn">highestInternationalStudents</span>(<span class="type">String</span> firstCity, <span class="type">String</span> secondCity) {
+    <span class="kw">try</span> {
+        <span class="type">String</span> result = <span class="fn">findBestInCity</span>(firstCity);
+        <span class="kw">if</span> (result == <span class="kw">null</span>) result = <span class="fn">findBestInCity</span>(secondCity);
+        <span class="kw">return</span> result;
+    } <span class="kw">catch</span> (Exception e) {
+        <span class="kw">return</span> <span class="str">""</span>;
+    }
+}</pre>
     </div>
   </div>
 </div>
@@ -1417,6 +1584,60 @@ li { margin-bottom: 8px; line-height: 1.8; }
       <div class="key-point">
         <strong>Memory trick:</strong> In Gson, everything goes through <code>.get("key")</code> first (returns a JsonElement), then you convert with <code>.getAsXxx()</code>. In org.json, you call <code>.getXxx("key")</code> directly. Gson is two steps, org.json is one step.
       </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Alt</span> — Same solution using BufferedReader (URL + HttpURLConnection)</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">public static</span> <span class="type">String</span> <span class="fn">bestInGenre</span>(<span class="type">String</span> genre) {
+    <span class="kw">try</span> {
+        <span class="type">String</span> bestName = <span class="str">""</span>;
+        <span class="type">double</span> bestRating = -<span class="num">1.0</span>;
+        <span class="type">int</span> page = <span class="num">1</span>, total_pages = <span class="num">1</span>;
+
+        <span class="kw">while</span> (page <= total_pages) {
+            <span class="type">String</span> urlStr = <span class="str">"https://jsonmock.hackerrank.com/api/tvseries?page="</span> + page;
+
+            <span class="cm">// BufferedReader approach</span>
+            URL url = <span class="kw">new</span> URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.<span class="fn">openConnection</span>();
+            conn.<span class="fn">setRequestMethod</span>(<span class="str">"GET"</span>);
+            BufferedReader br = <span class="kw">new</span> BufferedReader(
+                <span class="kw">new</span> InputStreamReader(conn.<span class="fn">getInputStream</span>()));
+            StringBuilder sb = <span class="kw">new</span> StringBuilder();
+            <span class="type">String</span> line;
+            <span class="kw">while</span> ((line = br.<span class="fn">readLine</span>()) != <span class="kw">null</span>) sb.<span class="fn">append</span>(line);
+            br.<span class="fn">close</span>();
+
+            JsonObject json = JsonParser.<span class="fn">parseString</span>(sb.<span class="fn">toString</span>()).<span class="fn">getAsJsonObject</span>();
+            total_pages = json.<span class="fn">get</span>(<span class="str">"total_pages"</span>).<span class="fn">getAsInt</span>();
+            JsonArray data = json.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);
+
+            <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i < data.<span class="fn">size</span>(); i++) {
+                JsonObject s = data.<span class="fn">get</span>(i).<span class="fn">getAsJsonObject</span>();
+                <span class="kw">if</span> (!s.<span class="fn">get</span>(<span class="str">"genre"</span>).<span class="fn">getAsString</span>().<span class="fn">contains</span>(genre)) <span class="kw">continue</span>;
+
+                <span class="type">double</span> r = s.<span class="fn">get</span>(<span class="str">"imdb_rating"</span>).<span class="fn">getAsDouble</span>();
+                <span class="type">String</span> n = s.<span class="fn">get</span>(<span class="str">"name"</span>).<span class="fn">getAsString</span>();
+
+                <span class="kw">if</span> (r > bestRating || (r == bestRating && n.<span class="fn">compareTo</span>(bestName) < <span class="num">0</span>)) {
+                    bestRating = r;
+                    bestName = n;
+                }
+            }
+            page++;
+        }
+
+        <span class="kw">return</span> bestName;
+
+    } <span class="kw">catch</span> (Exception e) {
+        <span class="kw">return</span> <span class="str">""</span>;
+    }
+}</pre>
     </div>
   </div>
 </div>
