@@ -2010,7 +2010,104 @@ li { margin-bottom: 8px; line-height: 1.8; }
 
   <div class="phase">
     <div class="phase-header" onclick="togglePhase(this)">
-      <span><span class="phase-num">Phase 3</span> — Complete solution (Gson version for HackerRank)</span>
+      <span><span class="phase-num">Phase 3</span> — Debugger walkthrough (every variable at every step)</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+      <p>Let's trace <code>getPhoneNumbers("Afghanistan", "12345678")</code> like a debugger:</p>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Debugger — country = "Afghanistan", phoneNumber = "12345678"</div>
+        <table>
+          <tr><th>Step</th><th>Line of code</th><th>What happens inside the computer</th><th>Variable values after this line</th></tr>
+          <tr>
+            <td>1</td>
+            <td><code>country.replace(" ", "%20")</code></td>
+            <td>"Afghanistan" has no spaces → nothing changes. If it was "United States" it would become "United%20States" because URLs can't have spaces</td>
+            <td><code>url = "https://jsonmock.hackerrank.com/api/countries?name=Afghanistan"</code></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>HTTP GET request</td>
+            <td>Java sends this URL to the internet. The server at jsonmock.hackerrank.com receives "give me data where name=Afghanistan". Server searches its database, finds Afghanistan, sends back JSON.</td>
+            <td><code>json = '{"page":1,"total":1,"data":[{"name":"Afghanistan","callingCodes":["93"],...}]}'</code></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><code>JsonParser.parseString(json).getAsJsonObject()</code></td>
+            <td>Takes the raw text string and turns it into a structured Java object you can navigate with <code>.get()</code></td>
+            <td><code>response = JsonObject{page:1, total:1, data:[...]}</code></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><code>response.getAsJsonArray("data")</code></td>
+            <td>Reaches into the response object, finds the key "data", pulls out the array</td>
+            <td><code>data = JsonArray[ {name:"Afghanistan", callingCodes:["93"], ...} ]</code></td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><code>data.size() == 0</code></td>
+            <td><code>data.size()</code> returns <strong>1</strong> (one country found). <code>1 == 0</code> is <strong>false</strong>. So we do NOT enter the if block. We skip past <code>return "-1"</code>.</td>
+            <td>No change — we continue to the next line</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><code>data.get(0).getAsJsonObject()</code></td>
+            <td><code>data.get(0)</code> gets the first element (index 0). <code>.getAsJsonObject()</code> converts it from generic JsonElement to a JsonObject we can query.</td>
+            <td><code>countryObj = {name:"Afghanistan", callingCodes:["93"], capital:"Kabul", ...}</code></td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td><code>countryObj.getAsJsonArray("callingCodes")</code></td>
+            <td>Reaches into the country object, finds "callingCodes", pulls out the array</td>
+            <td><code>callingCodes = JsonArray["93"]</code></td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td><code>callingCodes.get(callingCodes.size() - 1).getAsString()</code></td>
+            <td><code>size()</code> returns <strong>1</strong>. <code>1 - 1 = 0</code>. <code>get(0)</code> gets the first (and last) element. <code>.getAsString()</code> converts it to a plain Java String.</td>
+            <td><code>code = "93"</code></td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td><code>"+" + code + " " + phoneNumber</code></td>
+            <td>String concatenation: <code>"+"</code> + <code>"93"</code> + <code>" "</code> + <code>"12345678"</code></td>
+            <td><strong>returns "+93 12345678"</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Debugger — what if country does NOT exist? (country = "Fakeland")</div>
+        <table>
+          <tr><th>Step</th><th>Line of code</th><th>What happens</th></tr>
+          <tr><td>1</td><td>HTTP GET <code>?name=Fakeland</code></td><td>Server searches for "Fakeland" → not found → returns <code>{"data":[]}</code> (empty array)</td></tr>
+          <tr><td>2</td><td><code>data.size() == 0</code></td><td><code>data.size()</code> returns <strong>0</strong>. <code>0 == 0</code> is <strong>true</strong>. We enter the if block.</td></tr>
+          <tr><td>3</td><td><code>return "-1"</code></td><td>Exits the method immediately. Lines 6-9 never run. We never try to read callingCodes from something that doesn't exist.</td></tr>
+        </table>
+      </div>
+
+      <div class="data-flow">
+        <div class="data-flow-title">Debugger — multiple calling codes (country = "Puerto Rico")</div>
+        <table>
+          <tr><th>Step</th><th>Line of code</th><th>What happens</th></tr>
+          <tr><td>1</td><td><code>country.replace(" ", "%20")</code></td><td>"Puerto Rico" → "Puerto%20Rico" (space replaced!)</td></tr>
+          <tr><td>2</td><td>HTTP GET</td><td>Server finds Puerto Rico → <code>callingCodes: ["1787", "1939"]</code></td></tr>
+          <tr><td>3</td><td><code>callingCodes.size() - 1</code></td><td><code>2 - 1 = 1</code> → <code>get(1)</code> → <code>"1939"</code> (the LAST one)</td></tr>
+          <tr><td>4</td><td>Format</td><td><code>"+" + "1939" + " " + "564593986"</code> → <strong>"+1939 564593986"</strong></td></tr>
+        </table>
+      </div>
+
+      <div class="key-point">
+        <strong>How does the API know which country we want?</strong><br>
+        The country name goes INTO the URL as a query parameter: <code>?name=Afghanistan</code>. The API server receives this, searches its database for that name, and returns only the matching result. You don't loop through all countries yourself — the server does the filtering. That's what query parameters are for.
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 4</span> — Complete solution using BufferedReader</span>
       <span class="arrow">&#9654;</span>
     </div>
     <div class="phase-body">
@@ -2021,99 +2118,130 @@ li { margin-bottom: 8px; line-height: 1.8; }
 <span class="kw">class</span> <span class="type">Result</span> {
     <span class="kw">public static</span> <span class="type">String</span> <span class="fn">getPhoneNumbers</span>(<span class="type">String</span> country, <span class="type">String</span> phoneNumber) {
         <span class="kw">try</span> {
-            <span class="cm">// 1. Build URL — replace spaces with %20 for URL encoding</span>
             <span class="type">String</span> urlString =
                 <span class="str">"https://jsonmock.hackerrank.com/api/countries?name="</span>
-                + country.replace(<span class="str">" "</span>, <span class="str">"%20"</span>);
+                + country.<span class="fn">replace</span>(<span class="str">" "</span>, <span class="str">"%20"</span>);
 
-            <span class="cm">// 2. Make HTTP GET request</span>
-            <span class="type">URL</span> url = <span class="kw">new</span> <span class="type">URL</span>(urlString);
-            <span class="type">HttpURLConnection</span> conn = (<span class="type">HttpURLConnection</span>) url.openConnection();
-            conn.setRequestMethod(<span class="str">"GET"</span>);
+            <span class="cm">// BufferedReader — URL + connection + read line by line</span>
+            URL url = <span class="kw">new</span> URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.<span class="fn">openConnection</span>();
+            conn.<span class="fn">setRequestMethod</span>(<span class="str">"GET"</span>);
 
-            <span class="cm">// 3. Read the response</span>
-            <span class="type">BufferedReader</span> br = <span class="kw">new</span> <span class="type">BufferedReader</span>(
-                <span class="kw">new</span> <span class="type">InputStreamReader</span>(conn.getInputStream()));
-            <span class="type">StringBuilder</span> sb = <span class="kw">new</span> <span class="type">StringBuilder</span>();
+            BufferedReader br = <span class="kw">new</span> BufferedReader(
+                <span class="kw">new</span> InputStreamReader(conn.<span class="fn">getInputStream</span>()));
+            StringBuilder sb = <span class="kw">new</span> StringBuilder();
             <span class="type">String</span> line;
-            <span class="kw">while</span> ((line = br.readLine()) != <span class="kw">null</span>) { sb.append(line); }
-            br.close();
+            <span class="kw">while</span> ((line = br.<span class="fn">readLine</span>()) != <span class="kw">null</span>) { sb.<span class="fn">append</span>(line); }
+            br.<span class="fn">close</span>();
 
-            <span class="cm">// 4. Parse JSON</span>
-            <span class="type">JsonObject</span> response = <span class="type">JsonParser</span>.parseString(sb.toString())
-                .getAsJsonObject();
-            <span class="type">JsonArray</span> data = response.getAsJsonArray(<span class="str">"data"</span>);
+            JsonObject response = JsonParser.<span class="fn">parseString</span>(sb.<span class="fn">toString</span>())
+                .<span class="fn">getAsJsonObject</span>();
+            JsonArray data = response.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);
 
-            <span class="cm">// 5. If data is empty → country not found</span>
-            <span class="kw">if</span> (data.size() == <span class="num">0</span>) {
+            <span class="kw">if</span> (data.<span class="fn">size</span>() == <span class="num">0</span>) {
                 <span class="kw">return</span> <span class="str">"-1"</span>;
             }
 
-            <span class="cm">// 6. Get the country object (first and only element)</span>
-            <span class="type">JsonObject</span> countryObj = data.get(<span class="num">0</span>).getAsJsonObject();
-            <span class="type">JsonArray</span> callingCodes = countryObj.getAsJsonArray(<span class="str">"callingCodes"</span>);
+            JsonObject countryObj = data.<span class="fn">get</span>(<span class="num">0</span>).<span class="fn">getAsJsonObject</span>();
+            JsonArray callingCodes = countryObj.<span class="fn">getAsJsonArray</span>(<span class="str">"callingCodes"</span>);
 
-            <span class="cm">// 7. Pick the LAST calling code (highest index)</span>
             <span class="type">String</span> code = callingCodes
-                .get(callingCodes.size() - <span class="num">1</span>).getAsString();
+                .<span class="fn">get</span>(callingCodes.<span class="fn">size</span>() - <span class="num">1</span>).<span class="fn">getAsString</span>();
 
-            <span class="cm">// 8. Format and return</span>
             <span class="kw">return</span> <span class="str">"+"</span> + code + <span class="str">" "</span> + phoneNumber;
 
-        } <span class="kw">catch</span> (<span class="type">Exception</span> e) {
+        } <span class="kw">catch</span> (Exception e) {
             <span class="kw">return</span> <span class="str">"-1"</span>;
         }
     }
 }
 
 <span class="kw">public class</span> <span class="type">Solution</span> {
-    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) <span class="kw">throws</span> <span class="type">IOException</span> {
-        <span class="type">BufferedReader</span> bufferedReader = <span class="kw">new</span> <span class="type">BufferedReader</span>(
-            <span class="kw">new</span> <span class="type">InputStreamReader</span>(<span class="type">System</span>.in));
-        <span class="type">BufferedWriter</span> bufferedWriter = <span class="kw">new</span> <span class="type">BufferedWriter</span>(
-            <span class="kw">new</span> <span class="type">FileWriter</span>(<span class="type">System</span>.getenv(<span class="str">"OUTPUT_PATH"</span>)));
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) <span class="kw">throws</span> IOException {
+        BufferedReader bufferedReader = <span class="kw">new</span> BufferedReader(
+            <span class="kw">new</span> InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = <span class="kw">new</span> BufferedWriter(
+            <span class="kw">new</span> FileWriter(System.<span class="fn">getenv</span>(<span class="str">"OUTPUT_PATH"</span>)));
 
-        <span class="type">String</span> country = bufferedReader.readLine();
-        <span class="type">String</span> phoneNumber = bufferedReader.readLine();
-        <span class="type">String</span> result = <span class="type">Result</span>.getPhoneNumbers(country, phoneNumber);
+        <span class="type">String</span> country = bufferedReader.<span class="fn">readLine</span>();
+        <span class="type">String</span> phoneNumber = bufferedReader.<span class="fn">readLine</span>();
+        <span class="type">String</span> result = Result.<span class="fn">getPhoneNumbers</span>(country, phoneNumber);
 
-        bufferedWriter.write(result);
-        bufferedWriter.newLine();
-        bufferedReader.close();
-        bufferedWriter.close();
+        bufferedWriter.<span class="fn">write</span>(result);
+        bufferedWriter.<span class="fn">newLine</span>();
+        bufferedReader.<span class="fn">close</span>();
+        bufferedWriter.<span class="fn">close</span>();
     }
 }</pre>
-
-      <h4>Word-by-word breakdown of key parts</h4>
-      <table>
-        <tr><th>Code</th><th>What it does</th><th>Why</th></tr>
-        <tr><td><code>country.replace(" ", "%20")</code></td><td>Replaces spaces with %20</td><td>URLs can't have spaces. %20 is the URL encoding for space. "Puerto Rico" &rarr; "Puerto%20Rico"</td></tr>
-        <tr><td><code>url.openConnection()</code></td><td>Opens a connection (doesn't send yet)</td><td>Prepares the request — the actual HTTP call happens when you read the stream</td></tr>
-        <tr><td><code>(HttpURLConnection)</code></td><td>Cast to HttpURLConnection</td><td><code>openConnection()</code> returns generic URLConnection. We need HTTP-specific methods like setRequestMethod</td></tr>
-        <tr><td><code>conn.getInputStream()</code></td><td>Sends the request and gets the response bytes</td><td>THIS is when the actual HTTP call fires</td></tr>
-        <tr><td><code>data.size() == 0</code></td><td>Check if the data array is empty</td><td>Empty = country not found. Return "-1"</td></tr>
-        <tr><td><code>data.get(0).getAsJsonObject()</code></td><td>Get first element as a JSON object</td><td>data always has 0 or 1 elements. If we're here, it has 1.</td></tr>
-        <tr><td><code>callingCodes.size() - 1</code></td><td>Index of the LAST element</td><td>Arrays are 0-indexed. Last element = length - 1. For ["1787","1939"], size=2, index=1 &rarr; "1939"</td></tr>
-      </table>
-
-      <div class="data-flow">
-        <div class="data-flow-title">Trace with country = "Puerto Rico"</div>
-        <table>
-          <tr><th>Step</th><th>What happens</th><th>Value</th></tr>
-          <tr><td>1</td><td>URL built</td><td>.../countries?name=Puerto%20Rico</td></tr>
-          <tr><td>2</td><td>API response parsed</td><td>data = [{ name: "Puerto Rico", callingCodes: ["1787", "1939"], ... }]</td></tr>
-          <tr><td>3</td><td>data.size()</td><td>1 (not empty &rarr; continue)</td></tr>
-          <tr><td>4</td><td>callingCodes</td><td>["1787", "1939"]</td></tr>
-          <tr><td>5</td><td>callingCodes.size() - 1</td><td>2 - 1 = 1 &rarr; "1939"</td></tr>
-          <tr><td>6</td><td>Format</td><td>"+" + "1939" + " " + "564593986" = <strong>"+1939 564593986"</strong></td></tr>
-        </table>
-      </div>
     </div>
   </div>
 
   <div class="phase">
     <div class="phase-header" onclick="togglePhase(this)">
-      <span><span class="phase-num">Phase 4</span> — Pattern: No-Pagination API</span>
+      <span><span class="phase-num">Alt</span> — Same solution using HttpClient</span>
+      <span class="arrow">&#9654;</span>
+    </div>
+    <div class="phase-body">
+<pre><span class="kw">import</span> java.io.*;
+<span class="kw">import</span> java.net.URI;
+<span class="kw">import</span> java.net.http.*;
+<span class="kw">import</span> com.google.gson.*;
+
+<span class="kw">class</span> <span class="type">Result</span> {
+    <span class="kw">public static</span> <span class="type">String</span> <span class="fn">getPhoneNumbers</span>(<span class="type">String</span> country, <span class="type">String</span> phoneNumber) {
+        <span class="kw">try</span> {
+            <span class="type">String</span> url = <span class="str">"https://jsonmock.hackerrank.com/api/countries?name="</span>
+                + country.<span class="fn">replace</span>(<span class="str">" "</span>, <span class="str">"%20"</span>);
+
+            <span class="cm">// HttpClient — 3 lines instead of 7</span>
+            <span class="type">String</span> json = HttpClient.<span class="fn">newHttpClient</span>()
+                .<span class="fn">send</span>(HttpRequest.<span class="fn">newBuilder</span>().<span class="fn">uri</span>(URI.<span class="fn">create</span>(url)).<span class="fn">build</span>(),
+                      HttpResponse.BodyHandlers.<span class="fn">ofString</span>()).<span class="fn">body</span>();
+
+            JsonObject response = JsonParser.<span class="fn">parseString</span>(json).<span class="fn">getAsJsonObject</span>();
+            JsonArray data = response.<span class="fn">getAsJsonArray</span>(<span class="str">"data"</span>);
+
+            <span class="kw">if</span> (data.<span class="fn">size</span>() == <span class="num">0</span>) {
+                <span class="kw">return</span> <span class="str">"-1"</span>;
+            }
+
+            JsonObject countryObj = data.<span class="fn">get</span>(<span class="num">0</span>).<span class="fn">getAsJsonObject</span>();
+            JsonArray callingCodes = countryObj.<span class="fn">getAsJsonArray</span>(<span class="str">"callingCodes"</span>);
+
+            <span class="type">String</span> code = callingCodes
+                .<span class="fn">get</span>(callingCodes.<span class="fn">size</span>() - <span class="num">1</span>).<span class="fn">getAsString</span>();
+
+            <span class="kw">return</span> <span class="str">"+"</span> + code + <span class="str">" "</span> + phoneNumber;
+
+        } <span class="kw">catch</span> (Exception e) {
+            <span class="kw">return</span> <span class="str">"-1"</span>;
+        }
+    }
+}
+
+<span class="kw">public class</span> <span class="type">Solution</span> {
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) <span class="kw">throws</span> IOException {
+        BufferedReader bufferedReader = <span class="kw">new</span> BufferedReader(
+            <span class="kw">new</span> InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = <span class="kw">new</span> BufferedWriter(
+            <span class="kw">new</span> FileWriter(System.<span class="fn">getenv</span>(<span class="str">"OUTPUT_PATH"</span>)));
+
+        <span class="type">String</span> country = bufferedReader.<span class="fn">readLine</span>();
+        <span class="type">String</span> phoneNumber = bufferedReader.<span class="fn">readLine</span>();
+        <span class="type">String</span> result = Result.<span class="fn">getPhoneNumbers</span>(country, phoneNumber);
+
+        bufferedWriter.<span class="fn">write</span>(result);
+        bufferedWriter.<span class="fn">newLine</span>();
+        bufferedReader.<span class="fn">close</span>();
+        bufferedWriter.<span class="fn">close</span>();
+    }
+}</pre>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header" onclick="togglePhase(this)">
+      <span><span class="phase-num">Phase 5</span> — Pattern: No-Pagination API</span>
       <span class="arrow">&#9654;</span>
     </div>
     <div class="phase-body">
